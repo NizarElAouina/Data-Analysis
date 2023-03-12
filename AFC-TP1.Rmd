@@ -1,0 +1,533 @@
+---
+title: "Lab: AFC"
+output: 
+  learnr::tutorial:
+    progressive: true
+    allow_skip: true
+runtime: shiny_prerendered
+description: >
+  ACP.
+---
+
+```{r setup, include=FALSE}
+library(learnr)
+library(tidyverse)
+library(nycflights13)
+library(Lahman)
+library(FactoMineR)
+library(factoextra)
+library(Hmisc)
+library(corrplot)
+dt <- as.table(as.matrix(housetasks))
+tutorial_options(exercise.timelimit = 60)
+knitr::opts_chunk$set(error = TRUE)
+```
+
+## __Introduction__
+
+Dans le Lab actuel, nous allons montrer comment calculer et interpréter l’analyse factorielle des correspondances à l’aide de deux packages du programme `R` :  
+    `FactoMiner`  pour l’analyse         
+    `factoextra`  pour la visualisation des données.        
+    `gplots`, `graphics` et `corrplot` aussi pour la visualisation.         
+De plus, nous montrerons comment révéler les variables les plus importantes qui expliquent les variations d’un ensemble de données.    
+Nous continuons en expliquant comment appliquer l’analyse des correspondances à l’aide de lignes et de colonnes supplémentaires, c’est important, si vous voulez faire des prédictions avec l'AFC.     
+Les dernières sections de ce lab décrivent également comment filtrer les résultats de l’AFC afin de ne conserver que les variables qui contribuent le plus. 
+Enfin, nous verrons comment traiter les valeurs aberrantes.   
+
+## __Lecture des données__
+
+```{r Load-packages, exercise=TRUE, exercise.eval=TRUE}
+
+```
+
+```{r Load-packages-hint}
+library(FactoMineR)  
+library(factoextra)
+library(corrplot)
+library(gplots)
+library(graphics)
+```
+
+Les données devraient être sous forme d'un tableau de contingence. Nous utiliserons le jeu de données de démonstration `housetasks` disponibles dans le package factoextra `R`.    
+tapez `data(housetasks)` pour charger le jeu de données en question  
+
+Pour avoir un aperçu sur les données, utiliser les fonction suivantes:  
+    `str()`pour afficher un listing de toutes les variables et de leurs types  
+    `head()` pour afficher les 6 premières lignes  
+    `tail` pour afficher les 6 dernières lignes  
+    `rownames()` pour afficher les noms des lignes  
+    
+
+```{r print-htasks, exercise=TRUE, exercise.eval=FALSE}
+
+```
+
+```{r print-htasks-hint}
+data(housetasks)
+str(housetasks)
+head(housetasks)
+tail(housetasks)
+colnames(housetasks)
+```
+
+Le jeu de données est un tableau de contingence contenant 13 tâches domestiques et leur répartition dans le couple.    
+Les lignes sont les différentes tâches:  
+les valeurs sont les fréquences des tâches effectuées:  
+  par la femme  
+  par alternance  
+  par le mari  
+  conjointement  
+
+## __Graphique des tableaux de contingence et test du khi-deux__  
+
+### __Affichage graphique des tableaux de contingence__###
+
+Le tableau de contingence peut être visualisé en utilisant la fonction `balloonplot()` dans le package `gplots`. Cette fonction trace une matrice graphique où chaque cellule contient un point dont la taille est relative de sa valeur correspondante.  
+Le graphique pourrait être transposé selon le besoin en transposant le tableau de données par la fonction `t(data)`.  
+
+```{r plot-tasks, exercise=TRUE, exercise.eval=TRUE,fig.width=8, fig.height=6}
+
+```
+
+```{r plot-tasks-hint-1}
+dt <- as.table(as.matrix(housetasks)) # convertir les données en matrice
+balloonplot(dt, main ="housetasks", label = FALSE, show.margins = FALSE)
+```
+
+```{r plot-tasks-hint-2}
+dt <- as.table(as.matrix(housetasks)) # convertir les données en matrice
+balloonplot(t(dt), main ="housetasks", label = FALSE, show.margins = FALSE)
+```
+
+Remarque: Notez que les sommes des lignes et des colonnes sont reportées par défaut dans les marges inférieure et droite, Ces valeurs sont masquées en utilisant l’argument `show.margins = FALSE` (supprimer l'argument pour voir la différence).
+
+Il est également possible de visualiser une table de contingence comme un tracé en mosaïque. Ceci est fait en utilisant la fonction `mosaicplot()` du package `garphics`:  
+
+```{r plot2-htasks, exercise=TRUE, exercise.eval=TRUE, fig.width=8, fig.height=6}
+
+```
+
+```{r plot2-htasks-hint}
+mosaicplot(dt, shade = TRUE, las=2, main = "housetasks")
+```
+
+
+l’argument `shade` est utilisé pour colorer le graphique  
+L’argument `las = 2` produit des étiquettes verticales  
+
+Notez que la surface d’un élément de la mosaïque reflète l’importance relative de sa valeur.  
+
+La couleur bleue indique que la valeur observée est supérieure à la valeur théorique dans le cas de l'indépendance  
+La couleur rouge indique que la valeur observée est inférieure à la valeur théorique dans le cas de l'indépendance  
+
+De ce graphique de mosaïque, on peut voir que les "housetasks Laundry", "Main_meal", "Dinner" et "breakfeast" (couleur bleue) sont principalement effectuées par la femme dans notre exemple.
+
+### __Test de khi-deux__###
+
+Le test du chi-deux permet de déterminer si les lignes et les colonnes d’un tableau de contingence sont associées de façon statistiquement significative.        
+
+  Hypothèse nulle $(H_0)$: les variables de ligne et de colonne de la table de contingence sont indépendantes.        
+  Hypothèse alternative $(H_1)$: les variables des lignes et des colonnes sont dépendantes.
+
+La statistique du khi-deux peut être facilement calculée à l’aide de la fonction `chisq.test()`. Nommez le résultat (htasks_chisq par exemple) pour faciliter son exploitation  par la suite.       
+
+En appliquant la fonction `str()` sur `htasks_chisq`, vous saurez accédez aux effectifs observés et théoriques via l'opérateur `$`. 
+
+```{r Kh2-htasks, exercise=TRUE, exercise.eval=TRUE}
+
+```
+
+```{r Kh2-htasks-hint-1}
+htasks_chisq <- chisq.test(housetasks)
+```
+
+```{r Kh2-htasks-hint-2}
+htasks_chisq$observed
+htasks_chisq$expected
+```
+
+```{r Kh2-htasks-hint-3}
+round(htasks_chisq$expected,2)
+```
+
+La fonction `round(x, digits = ...)` s'utilise pour arrondir un nombre `x` au nombre de décimales spécifié (0 par défaut). 
+
+
+
+Les résidus de Pearson $(\frac{(Eff.Observés - Eff.Théoriques)}{\sqrt(Eff.Théoriques)})$ peuvent être aussi extraits facilement de `htasks_chisq` via l'opérateur `$`
+
+
+```{r prep-Kh2-htasks}
+htasks_chisq <- chisq.test(housetasks)
+```
+
+
+```{r res-Kh2-htasks, exercise=TRUE, exercise.eval=TRUE, exercise.setup="prep-Kh2-htasks"}
+
+```
+
+```{r res-Kh2-htasks-hint}
+htasks_chisq$residuals
+```
+
+Les cellules ayant les résidus normalisés absolus les plus élevés contribuent le plus au score du khi-deux total; ie contribuent le plus à l'écart de l'indépendance.
+
+Les résidus de Pearson peuvent être visualisés en utilisant la fonction `corrplot` du `corrplot` package
+
+
+```{r plot-res-Kh2-htasks, exercise=TRUE, fig.width=8, fig.height=6, exercise.eval=TRUE, exercise.setup="prep-Kh2-htasks"}
+
+```
+
+```{r plot-res-Kh2-htasks-hint}
+library(corrplot)
+corrplot(htasks_chisq$residuals, is.cor = FALSE)
+```
+
+Pour une cellule donnée, la taille du cercle est proportionnelle à la contribution à l'écart de l'indépendance.
+
+Le signe des résidus normalisés est également très important pour interpréter l’association entre les lignes et les colonnes:
+
+Les résidus positifs sont en bleu. Les valeurs positives dans les cellules spécifient une attraction (association positive) entre les modalités de ligne et de colonne correspondantes.  
+
+Dans le graphique ci-dessus, il est évident qu’il y a une association entre la colonne __Wife__ et les lignes __Laundry__ et __Main_meal__.  
+
+Il y a une forte association positive entre la colonne __Husband__  et la rangée __Repair__  
+
+Les résidus négatifs sont en rouge. Cela implique un repoussement (association négative) entre les modalités de ligne et de colonne correspondantes.  
+Par exemple, la colonne __Wife__  est négativement associée  à la ligne __Repairs__ .  
+Il y a aussi un repoussement entre la colonne __Husband__ et, les lignes __Laundry__ et __Main_meal__.
+
+Les contributions (en $\%$) des cellules au score total du khi-deux sont calculées comme suit : $$\frac{Résidus^2}{\chi^2}$$  
+
+Calculer ces contributions et tracer les en utilisant la fonction `corrplot`
+
+
+```{r plot-cont-Kh2-htasks, exercise=TRUE, fig.width=10, fig.height=6, exercise.eval=TRUE, exercise.setup="prep-Kh2-htasks"}
+
+```
+
+```{r plot-cont-Kh2-htasks-hint}
+contrib <- 100*htasks_chisq$residuals^2/htasks_chisq$statistic  
+round(contrib, 2)  
+corrplot(contrib, is.cor = FALSE)
+```
+
+On peut constater que:
+  
+La colonne __Wife__ est fortement associée à __Laundry__ $(7,74\%)$ et __Main_meal__ $(4,98\%)$, ___Dinner__ 
+La colonne __Husband__ est fortement associée à  __Repairs__ $(21,9\%)$
+La colonne __jointly__ est fréquemment associée à  __Holidays__ $(12,44\%)$
+
+Ces cellules contribuent à hauteur d’environ $47,06\%$ au score total de khi-deux et représentent donc la majeure partie de la différence entre les valeurs théoriques et observées.
+
+Cela confirme l’interprétation visuelle antérieure des données. Comme il a été mentionné précédemment, l’interprétation visuelle peut être complexe lorsque le tableau de contingence est très volumineux. Dans ce cas, la contribution d’une cellule au score total khi-deux devient un moyen utile pour établir la nature de la dépendance.
+
+## __Le code R pour l'AFC__
+
+Le calcul peut se faire avec la fonction `CA` du package `FactoMiner`, la forme générale est comme suit:  
+$$CA(X, ncp = ... , graph = ...)$$
+
+- X : un jeu de données (tableau de contingence)
+- ncp : nombre de dimensions conservées dans les résultats finaux.
+- graph : une valeur logique (TRUE or FALSE).
+
+Lancer les calcules relatif à l'AFC du jeu de données `housetasks` sans spécifier `np` et avec `graph=FALSE`, Nommez le résultat (htasks.afc par exemple). Puis exolicitez les éléments de `htasks.afc` en tapant `print(res.ca).`
+
+
+```{r AFC-htasks, exercise=TRUE, exercise.eval=TRUE}
+
+```
+
+```{r AFC-htasks-hint}
+htasks.afc <- CA(housetasks, graph = FALSE)
+```
+
+## __Visualisation et interprétation__
+
+```{r sp-AFC-htasks}
+htasks.afc <- CA(housetasks, graph = FALSE)
+```
+
+Nous utiliserons les fonctions suivantes du package`factoextra` pour faciliter l’interprétation et la visualisation du résultat de l’AFC; à savoir `htasks.afc`:        
+
+- `get_eigenvalue(htasks.afc)`: Extraire les valeurs propres/variances retenues par chaque dimension (axe)        
+- `fviz_eig(htasks.afc)`: Visualiser les valeurs propres
+- `get_ca_row(htasks.afc)`, `get_ca_col(htasks.afc)`: Extrait les résultats des lignes et des colonnes, respectivement.
+- `fviz_ca_row(htasks.afc)`, `fviz_ca_col(htasks.afc)`: Visualisez les résultats pour les lignes et les colonnes, respectivement.
+- `fviz_ca_biplot(htasks.afc)`: Crée un graphique superposé des lignes et des colonnes.
+
+### __Valeurs propres/Variances retenues__
+
+Afficher les valeurs propres des dimensions de l'AFC
+
+```{r ev-AFC-htasks, exercise=TRUE, exercise.eval=TRUE, exercise.setup="sp-AFC-htasks"}
+
+```
+
+```{r ev-AFC-htasks-hint}
+eig.val <- get_eigenvalue(htasks.afc)
+eig.val
+```
+
+Les valeurs propres correspondent à la quantité d’informations conservées par chaque axe. Les dimensions sont ordonnées de façon décroissante et listées en fonction de la quantité de variance retenue. 
+
+Les valeurs propres peuvent être utilisées pour déterminer le nombre d’axes à retenir. Il n’y a pas de règle empirique pour choisir le nombre de dimensions à retenir. Cela dépend de la question de recherche et des besoins du chercheur.
+
+Une autre alternative pour déterminer le nombre de dimensions est d’examiner le graphique des valeurs propres/variances ordonnées du plus grand au plus petit. Le nombre de composantes est déterminé au point au-delà duquel les valeurs propres restantes sont toutes relativement petites et de taille comparable.
+
+Tracer ledit graphique en utilisant la fonction `fviz_eig()` ou `fviz_screeplot()` du package `factoextra`.
+
+```{r viz-ev-AFC-htasks, exercise=TRUE, exercise.eval=TRUE, exercise.setup="sp-AFC-htasks"}
+
+```
+
+```{r viz-ev-AFC-htasks-hint}
+fviz_screeplot(htasks.afc, addlabels = TRUE, ylim = c(0, 50))
+```
+
+Les dimensions 1 et 2 expliquent respectivement environ 48,7% et 39,9% de l’inertie totale. Cela correspond à un total cumulé de 88,6% de l’inertie totale retenue par les 2 dimensions. 
+
+### __Le graphique superposé des lignes et colonnes__
+
+Tracer le graphique superposé des profils lignes et des profils colonnes en appliquant la fonction `fviz_ca_biplot()` sur l'objet `htasks.afc`
+
+```{r viz-supp-AFC-htasks, exercise=TRUE, exercise.eval=TRUE, exercise.setup="sp-AFC-htasks"}
+
+```
+
+```{r viz-supp-AFC-htasks-hint}
+fviz_ca_biplot(htasks.afc, repel = TRUE)
+```
+
+Le graphique ci-dessus montre les tendances principales dans les données. Les lignes sont représentées par des points bleus et des colonnes par des triangles rouges.
+La distance entre les points ligne ou entre les points colonne donne une mesure de leur similitude (ou dissimilarité).  
+Les points ligne ayant un profil similaire sont proches sur le plan des facteurs. Il en va de même pour les points de colonne.  
+
+Ce graphique montre que:        
+- les tâches internes comme __dinner__, __breakfeast__, __laundry__ sont effectuées plus souvent par __wife__        
+- __Driving__ et __repairs__  sont effectuées par le __husband__          
+- ...
+
+### __Graphique des profils ligne__
+
+Appliquer la fonction `get_ca_row()` sur l'objet `htasks.afc` pour extraire les résultats des profils ligne.        
+Cette fonction retourne une liste contenant les coordonnées, le cos2, la contribution et l’inertie des des profils lign.       
+
+```{r ligne-AFC-htasks, exercise=TRUE, exercise.eval=TRUE, exercise.setup="sp-AFC-htasks"}
+
+```
+
+```{r ligne-AFC-htasks-hint}
+row <- get_ca_row(htasks.afc)
+row
+```
+
+Les composants de la fonction `get_ca_row()` peuvent être utilisés pour tracer et analyser les profils ligne comme suit :              
+- `row$coord` : coordonnées de chaque point ligne dans chaque dimension (1, 2 et 3). Utilisé pour créer le diagramme de dispersion.        
+- `row$cos2` : qualité de la représentation des profils ligne.        
+- `var$contrib`: contribution des lignes (en $\%$) à la définition des dimensions.      
+
+#### __Coordonnées des points ligne__
+
+
+Jeter un coup d'oeil sur `row$coord` puis tracer uniquement les points ligne en utilisant la fonction `fviz_ca_row()` sur l'objet `htasks.afc`.      
+
+```{r coord-ligne-AFC-htasks, exercise=TRUE, exercise.eval=TRUE, exercise.setup="sp-AFC-htasks"}
+
+```
+
+```{r coord-ligne-AFC-htasks-hint}
+fviz_ca_row(htasks.afc)
+```
+
+Le graphique ci-dessus montre les relations entre les profils ligne :  
+
+- Les lignes ayant un profil similaire sont regroupées.       
+- Les lignes corrélées négativement sont positionnées sur les côtés opposés de l’origine du tracé (quadrants opposés).       
+- La distance entre les points ligne et l’origine mesure la qualité de représentation des points ligne sur le plan des facteurs.        
+- Les points ligne éloignés de l’origine sont bien représentés sur le plan des facteurs.       
+
+#### __Qualité de représentation des point ligne__
+
+```{r sp2-AFC-htasks}
+htasks.afc <- CA(housetasks, graph = FALSE)
+row <- get_ca_row(htasks.afc)
+```
+Le `cos2` mesure le degré d’association entre les profils lignes/colonnes et un axe particulier. Les valeurs du `cos2` sont comprises entre 0 et 1, la somme des `cos2` pour chaque ligne sur toutes les dimensions de l’AFC est égale à 1.Si un profil ligne est bien représenté par deux dimensions, la somme des cos2 sur les deux dimension est proche de 1.         
+Afficher Les `cos2` des profils ligne en tapant `row$cos2`, puis visualiser graphiquement `row$cos2`en utilisant la fonction `corrplot`.
+
+```{r qty-ligne-AFC-htasks, exercise=TRUE, exercise.eval=TRUE, exercise.setup="sp2-AFC-htasks"}
+
+```
+
+```{r qty-ligne-AFC-htasks-hint}
+row$cos2
+corrplot(row$cos2, is.corr=FALSE)
+```
+
+Notez que tous les profils ligne sont bien représentés par les deux premières dimensions sauf le profil Officiel qui est bien représenté par la troisième dimension.
+
+Il est possible de colorer les points sur le graphique des Coordonnées des points ligne par leurs valeurs cos2 en utilisant l’argument `col.row = "cos2"`. Ceci produit des couleurs dégradé, qui peuvent être personnalisées en utilisant l’argument `gradient.cols`. Par exemple, `gradient.cols = c("white", "blue", "red")`.
+
+```{r cos-ligne-AFC-htasks, exercise=TRUE, exercise.eval=TRUE, exercise.setup="sp2-AFC-htasks"}
+fviz_ca_row(htasks.afc, col.row = "cos2", gradient.cols = c("#00AFBB", "#E7B800", "#FC4E07"), repel = TRUE)
+```
+#### __Contribution des profils ligne aux dimensions__
+
+Les profils ligne qui contribuent le plus à Dim.1 et Dim.2 sont les plus importantes pour expliquer la variabilité de l’ensemble de données dans le plan défini par les deux dimensions.     
+
+Les profils ligne qui ne contribuent pas beaucoup ni à Dim.1 ni à Dim.2 ou qui contribuent le plus à la dernière dimension sont moins importantes.       
+
+Afficher les contributions `row$contrib`  puis utiliser la fonction `corrplot()` pour mettre en évidence les points ligne les plus contributifs pour chaque dimension.
+
+```{r ctr-ligne-AFC-htasks, exercise=TRUE, exercise.eval=TRUE, exercise.setup="sp2-AFC-htasks"}
+
+```
+
+```{r ctr-ligne-AFC-htasks-hint}
+row$contrib
+corrplot(row$contrib, is.corr=FALSE)
+```
+
+Si vos données contiennent de nombreuses lignes, vous pouvez décider de n’afficher que les premières lignes contributives.Dans ce sens, la fonction `fviz_contrib()` peut être utilisée pour dessiner diagramme en bâton de contributions de lignes.  Le code R ci-dessous indique les 10 première profils ligne qui contribuent aux dimensions:
+
+```{r 10-ctr-ligne-AFC-htasks, exercise=TRUE, exercise.eval=TRUE, exercise.setup="sp2-AFC-htasks"}
+
+fviz_contrib(htasks.afc, choice = "row", axes = 1, top = 10)    
+
+fviz_contrib(htasks.afc, choice = "row", axes = 2, top = 10)
+```
+
+On peut voir que:
+- Les profils ligne __Repairs__, __Laundry__, __Main_meal__ et __Driving__ sont les plus importants dans la définition de la première dimension.        
+- Les profils lignes __Holidays__ et __Repairs__ contribuent le plus à la dimension 2.        
+
+Les profils lignes les plus importants (ou contributifs) peuvent être mis en évidence sur le diagramme des coordonnées comme suit:
+
+
+```{r contrib-ligne-AFC-htasks, exercise=TRUE, exercise.eval=TRUE, exercise.setup="sp2-AFC-htasks"}
+fviz_ca_row(htasks.afc, col.row = "contrib", gradient.cols = c("#00AFBB", "#E7B800", "#FC4E07"), repel = TRUE)
+```
+
+### __Graphique des profils colonne__
+
+Appliquer la fonction `get_ca_col()` sur l’objet `htasks.afc` pour extraire les résultats des profils colonne. Nommer le résultat `col` .  
+
+```{r col-AFC-htasks, exercise=TRUE, exercise.eval=TRUE, exercise.setup="sp-AFC-htasks"}
+
+```
+
+```{r col-AFC-htasks-hint}
+col <- get_ca_col(htasks.afc)
+col
+```
+
+Afficher les coordonnées des profils colonne, leurs qualités de représentation, leurs contributions ainsi que leurs inerties.
+
+```{r spc-AFC-htasks}
+htasks.afc <- CA(housetasks, graph = FALSE)  
+col<- get_ca_col(htasks.afc)
+```
+
+```{r col2-AFC-htasks, exercise=TRUE, exercise.eval=TRUE, exercise.setup="spc-AFC-htasks"}
+
+```
+
+#### __Coordonnées des points colonne__
+
+Tracer les points colonne en utilisant la fonction `fviz_ca_col()`
+
+```{r viz-col-htasks, exercise=TRUE, exercise.eval=TRUE, exercise.setup="spc-AFC-htasks",fig.width=8, fig.height=6}
+
+```
+
+```{r viz-col-htasks-hint}
+fviz_ca_col(htasks.afc)
+```
+
+#### __Visualisation de la qualité de représentation des points colonne__
+
+Visualiser graphiquement la qualité de représentation des points colonne `col$cos2` en utilisant la fonction `corrplot`  
+
+
+```{r qty-col-htasks, exercise=TRUE, exercise.eval=TRUE, exercise.setup="spc-AFC-htasks",fig.width=6, fig.height=4}
+
+```
+
+```{r qty-col-htasks-hint}
+corrplot(col$cos2, is.corr=FALSE)
+```
+
+Sachant que la fonction `rowsum` permet d'additionner les colonnes d'une matrice, calculer la qualité de représentation globale pour chaque profil colonne sur le plan défini par les deux premières dimensions.
+
+```{r qty2-col-htasks, exercise=TRUE, exercise.eval=TRUE, exercise.setup="spc-AFC-htasks"}
+
+```
+
+```{r qty2-col-htasks-hint}
+rowSums(col$cos2[,1:2])
+```
+
+Utiliser la fonction `fviz_cos2( ... ,choice = "col", axes = 1:2)` pour dessiner un diagramme en bâton représentatnt la qualité de représentation des profils colonne sur le plan défini par les deux premières dimensions.
+
+```{r viz-qty-col-htasks, exercise=TRUE, exercise.eval=TRUE, exercise.setup="spc-AFC-htasks"}
+
+```
+
+```{r viz-qty-col-htasks-hint}
+fviz_cos2(htasks.afc, choice = "col", axes = 1:2)
+```
+
+Il est à noter que tous les profils colonne sont très bien représentés sur le plan défini par les deux premières dimensions sauf le profil de la modalité $Alternating$ qui doit être interprété avec beaucoup de précaution sur ce plan.  
+
+#### __Visualisation des contributions des points colonne__
+
+Visualiser graphiquement les contributions des points colonne `col$contrib` en utilisant la fonction `corrplot`  
+
+
+```{r crt-col-htasks, exercise=TRUE, exercise.eval=TRUE, exercise.setup="spc-AFC-htasks",fig.width=6, fig.height=4}
+
+```
+
+```{r crt-col-htasks-hint}
+corrplot(col$contrib, is.corr=FALSE)
+```
+
+
+Utiliser la fonction `fviz_contrib( ... ,choice = "col", axes = 1:2)` pour dessiner un diagramme en bâton représentatnt les contributions des profils colonne sur le plan défini par les deux premières dimensions.
+
+```{r viz-crt-col-htasks, exercise=TRUE, exercise.eval=TRUE, exercise.setup="spc-AFC-htasks"}
+
+```
+
+```{r viz-crt-col-htasks-hint}
+fviz_contrib(htasks.afc, choice = "col", axes = 1:2)
+```
+
+Il est à noter que tous les profils colonne affichent des contributions qui dépassent la contribution moyenne (1/nombre de profils colonne × 100 = $25\%$), sauf le profil de la modalité $Alternating$ dont la contribution est quasiment négligeable.  
+
+#### __Biplot asymétrique__
+
+Comme mentionné ci-dessus, le graphique standard de l’analyse factorielle des correspondances est un biplot symétrique (représentation superposée) ou les distances entre les lignes et les colonnes ne peuvent pas être interprétée. Seules les tendances et des conclusions générales peuvent être tirées.
+
+```{r viz2-asym-htasks, exercise=FALSE, exercise.eval=FALSE, exercise.setup="spc-AFC-htasks"}
+fviz_ca_biplot(htasks.afc, repel = TRUE)
+```
+
+Pour interpréter la distance entre les points colonnes et les points lignes, le moyen le plus simple est de créer un biplot asymétrique.
+
+Pour créer un __biplot asymétrique standard__, utilisez la fonction `fviz_ca_biplot()` en ajoutant les arguments `map = "rowprincipal"` pour préciser que les colonnes seront représentées dans l’espace des lignes, et l'argument `arrow = c(TRUE, TRUE)` pour spécifier que le graphique doit contenir des flèches.
+
+```{r viz-asym-htasks, exercise=TRUE, exercise.eval=TRUE, exercise.setup="spc-AFC-htasks"}
+
+```
+
+```{r viz-asym-htasks-hint}
+fviz_ca_biplot (htasks.afc, map = "rowprincipal", arrow = c(TRUE, TRUE), repel = TRUE)
+```
+
+Un biplot asymétrique est le moyen le plus simple pour interpréter la distance entre les points colonne et les points ligne. En effet, si l’angle entre deux flèches est aigu, alors il y a une forte association entre la ligne et les colonne correspondantes.
+
+#### __Travail à faire__
+Sur la base des résultats obtenus tout au long de ce TP, rédigez une synthèse sur la répartition des tâches ménagère dans le couple

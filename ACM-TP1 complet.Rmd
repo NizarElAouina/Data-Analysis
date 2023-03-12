@@ -1,0 +1,424 @@
+---
+title: "Lab: ACM"
+output: 
+  learnr::tutorial:
+    progressive: true
+    allow_skip: true
+runtime: shiny_prerendered
+description: >
+  ACP.
+---
+
+```{r setup, include=FALSE}
+library(learnr)
+library(tidyverse)
+library(FactoMineR)
+library(factoextra)
+library(ade4)
+library(Lahman)
+library(ExPosition)
+library(Hmisc)
+library(corrplot)
+library(SQUAREM)
+library(future.apply)
+library(progressr)
+poison.active <- poison[1:55, 5:15]
+tutorial_options(exercise.timelimit = 60)
+knitr::opts_chunk$set(error = TRUE)
+```
+
+## __Introduction__
+
+Dans le Lab actuel, nous allons décrire comment calculer et visualiser l’analyse des correspondances multiples avec le logiciel `R` :  
+    `FactoMiner`  pour l’analyse         
+    `factoextra`  pour la visualisation des données.        
+    `gplots`, `graphics` et `corrplot` aussi pour la visualisation.         
+De plus, nous montrerons comment révéler les variables les plus importantes qui contribuent le plus à expliquer les variations dans le jeu de données. Nous continuons en expliquant comment prédire les résultats pour les individus et les variables supplémentaires.   
+
+## __Lecture des données__
+
+```{r Load-packages, exercise=TRUE, exercise.eval=TRUE}
+
+```
+
+```{r Load-packages-hint}
+library(FactoMineR)  
+library(factoextra)
+library(corrplot)
+library(gplots)
+library(graphics)
+```
+
+Nous utiliserons le jeux de données `poison` disponible dans le package FactoMineR:  
+tapez `data(poison)` pour charger le jeu de données en question  
+
+Pour avoir un aperçu sur les données, utiliser les fonction suivantes:  
+    `str()`pour afficher un listing de toutes les variables et de leurs types  
+    `head()` pour afficher les 6 premières lignes  
+    `tail` pour afficher les 6 dernières lignes  
+    `rownames()` pour afficher les noms des lignes  
+    
+
+```{r print-pois, exercise=TRUE, exercise.eval=FALSE}
+
+```
+
+```{r print-pois-hint}
+data(poison)
+str(poison)
+head(poison)
+tail(poison)
+colnames(poison)
+```
+
+Ces données proviennent d’une enquête menée auprès des enfants d'une école primaire qui ont subi des intoxications alimentaires. Ils ont été interrogés sur leurs symptômes et sur ce qu’ils ont mangé.
+
+Les données contiennent 55 lignes (individus) et 15 colonnes (variables). Nous n’utiliserons que certain des individus (enfants) et variables pour effectuer l’ACM. Les coordonnées des individus et des variables restantes seront prédites.
+
+Nos données contiennent donc des:
+
+Individus actifs (lignes 1:55): individus qui sont utilisés dans l’ACM.    
+  Variables actives (colonnes 5:15): variables utilisées dans l’ACM.     
+  Variables supplémentaires: elles ne participent pas à l’ACM. Les coordonnées de ces variables seront prédites.     
+    Variables quantitatives supplémentaires (quanti.sup): Colonnes 1 et 2 correspondant aux colonnes age et time, respectivement.    
+    Variables qualitatives supplémentaires (quali.sup: Colonnes 3 et 4 correspondant aux colonnes Sick et Sex, respectivement. Ces variables seront utilisées pour colorer les individus par groupes.   
+    
+Nous commençons par extraire les individus actifs et les variables actives pour l’ACM:
+
+```{r active-pois, exercise=TRUE, exercise.eval=FALSE}
+poison.active <- poison[1:55, 5:15]
+head(poison.active[, 1:6], 3)
+```
+## __Résumé des données__  
+
+Utiliser la fonction summary() peut être utilisée pour calculer la fréquence des catégories des variables.
+
+```{r summary-pois, exercise=TRUE, exercise.eval=FALSE}
+
+```
+
+```{r summary-pois-hint}
+summary(poison.active)
+```
+
+Il est également possible de visualiser la fréquence des catégories de la variable de rang `i` en utilisant la fonction $$plot(poison.active[,i], main =colnames(poison.active)[i], ylab = "Count")$$.   
+
+Tracer les fréquences des 4 premières variables. 
+
+```{r freq-pois, exercise=TRUE, exercise.eval=FALSE}
+plot(poison.active[,i], main = colnames(poison.active)[i], ylab = "Count", las = 2)
+```
+
+```{r freq-pois-hint-1}
+plot(poison.active[,1], main = colnames(poison.active)[1], ylab = "Count", las = 2)
+```
+
+```{r freq-pois-hint-2}
+for (i in 1:4) {
+  plot(poison.active[,i], main = colnames(poison.active)[i],
+       ylab = "Count", las = 2)## las=0: labels are parallel to axis or las=2 labels are perpendicular to axis
+  }
+```
+
+## __ACM__
+La fonction `MCA` peut être utilisée pour executer l'ACM sur un jeu de données `data`
+$$MCA(data, ncp = ... , graphique = TRUE/FALSE)$$
+Effectuez l'ACM sur les données active `poison.active`, nommez le resultat `res.mca` puis affichez le 
+
+```{r mca-pois, exercise=TRUE, exercise.eval=FALSE}
+
+```
+
+```{r mca-pois-hint}
+res.mca <- MCA (poison.active, graph = FALSE)
+res.mca
+```
+
+L’objet créé avec la fonction `MCA()` contient de nombreuses informations trouvées dans de nombreuses listes et matrices différentes. 
+
+## __Visualisation et interprétation__
+
+```{r Setup-ACM}
+res.mca <- MCA (poison.active, graph = FALSE)
+var <- get_mca_var(res.mca)
+```
+
+Nous utiliserons le package R `factoextra` pour aider à l’interprétation et à la visualisation de l’analyse des correspondances multiples.       
+
+Les fonctions de factoextra incluent:   
+
+  get_eigenvalue(res.mca): Extraction des valeurs propres / variances des composantes principales   
+  fviz_eig(res.mca): Visualisation des valeurs propres    
+  get_mca_ind(res.mca), get_mca_var(res.mca): Extraction des résultats pour les individus et les variables, respectivement.   
+  fviz_mca_ind(res.mca), fviz_mca_var(res.mca): visualisation des résultats des individus et des variables, respectivement.   
+  fviz_mca_biplot(res.mca): Création d’un biplot des individus et des variables.
+
+### __Valeurs propres / Variances__
+
+Extraire la proportion des variances retenues par les différentes dimensions (axes) l’aide de la fonction `get_eigenvalue()`. Nommez le résultat `eig.val` et affichez le.
+
+```{r eig-mca-pois, exercise=TRUE, exercise.eval=FALSE, exercise.setup="Setup-ACM"}
+
+```
+
+```{r eig-mca-pois-hint}
+eig.val <- get_eigenvalue(res.mca)
+eig.val
+```
+
+Utilisez la fonction `fviz_eig()` ou `fviz_screeplot()` pour visualiser les pourcentages de variances expliquées par chaque dimension de l’ACM.
+
+```{r plot-eig-pois, exercise=TRUE, exercise.eval=FALSE, exercise.setup="Setup-ACM"}
+
+```
+
+```{r plot-eig-pois-hint}
+fviz_eig(res.mca, addlabels = TRUE) 
+## or fviz_screeplot (res.mca, addlabels = TRUE)
+```
+ 
+### __Biplot__
+
+La fonction `fviz_mca_biplot()` permet de visualiser le biplot des individus et des variables:
+
+```{r biplot-pois, exercise=TRUE, exercise.eval=FALSE, exercise.setup="Setup-ACM"}
+
+```
+
+```{r biplot-pois-hint}
+fviz_mca_biplot (res.mca, repel = TRUE) # repel = TRUE: to avoid overplotting text labels
+```
+
+Dans le graphique ci-dessus, les lignes (individus) sont représentées par des points bleus et les colonnes (variables) par des triangles rouges.
+
+La distance entre les individus donne une mesure de leur similitude (ou dissemblance). Les individus avec un profil similaire sont proches sur le graphique. Il en va de même pour les variables.
+
+### __Graphique des variables__
+
+La fonction `get_mca_var()` sert à extraire les résultats pour les catégories des variables. Cette fonction renvoie une liste contenant les coordonnées, les cos2 et les contributions des catégories:
+
+Affichez les différents résultats sus-cités 
+
+```{r var-pois, exercise=TRUE, exercise.eval=FALSE, exercise.setup="Setup-ACM"}
+
+```
+
+```{r var-pois-hint}
+var <- get_mca_var(res.mca) 
+var  
+var$coord  
+var$cos2  
+var$contrib  
+
+```
+
+## __Corrélation entre les variables et les axes principaux__
+
+Pour visualiser la corrélation entre les variables et les axes principaux de l’ACM, utilisez cette fonction: 
+$$ fviz\_mca\_var (res.mca,\ choice =\ "mca.cor",\  repel = TRUE) $$
+
+
+```{r corr-pois, exercise=TRUE, exercise.eval=FALSE, exercise.setup="Setup-ACM"}
+
+```
+
+```{r corr-pois-hint}
+fviz_mca_var (res.mca, choice = "mca.cor", repel = TRUE)
+```
+
+Le graphique ci-dessus permet d’identifier les variables les plus corrélées avec chaque axe. Les corrélations au carré entre les variables et les axes sont utilisées comme coordonnées.
+
+On constate que les variables Diarrhae, Abdominals et Fever sont les plus corrélées avec la dimension 1. De même, les variables Courgette et Potato sont les plus corrélées avec la dimension 2.
+
+## __Coordonnées des catégories des variables__
+
+Utilisez la fonction `fviz_mca_var()` (sans l'argument `choice`) pour visualiser uniquement les catégories des variables:
+
+```{r plot-cat-pois, exercise=TRUE, exercise.eval=FALSE, exercise.setup="Setup-ACM"}
+
+```
+
+```{r plot-cat-pois-hint}
+fviz_mca_var (res.mca, repel = TRUE)
+```
+
+Le graphique ci-dessus montre les relations entre les catégories des variables. Il peut être interprété comme suit:
+
+Les catégories avec un profil similaire sont regroupées.        
+
+Les catégories corrélées négativement sont positionnées sur les côtés opposés de l’origine du graphique (quadrants opposés).
+
+La distance entre les catégories et l’origine mesure leurs qualité de représentation. Les points qui sont loin de l’origine sont bien représentés par l’ACM.
+
+## __Qualité de représentation des catégories des variables__
+
+Les deux dimensions 1 et 2 capturent 46% de l’inertie totale (variation) contenue dans les données. Tous les points ne sont pas aussi bien représentés par les deux dimensions.
+
+La qualité de représentation, appelée cosinus carré (cos2), mesure le degré d’association entre les catégories des variables et les dimensions. Le cos2 peut être extrait comme suit:
+
+Si une catégorie d’une variable donnée est bien représentée par deux dimensions, la somme des cos2 est proche de 1. Pour certains éléments, plus de 2 dimensions sont nécessaires pour représenter parfaitement les données.
+
+Utilisez la fonction `fviz_mca_var()` avec l'argument `col.var = "cos2"` et `gradient.cols = c("white", "blue", "red")` pour colorer les variables en fonction de la valeur de leur cos2.
+
+```{r plot-qlt-pois, exercise=TRUE, exercise.eval=FALSE, exercise.setup="Setup-ACM"}
+
+```
+
+```{r plot-qlt-pois-hint}
+# Colorer en fonction du cos2   
+fviz_mca_var(res.mca, col.var = "cos2",
+             gradient.cols = c("white", "blue", "red"), 
+             repel = TRUE)
+```
+
+Utilisez la fonction `corrplot` pour visualiser le `cos2` des catégories sur toutes les dimensions
+
+```{r corrplot-qlt-pois, exercise=TRUE, exercise.eval=FALSE, fig.width=8, fig.height=6, exercise.setup="Setup-ACM"}
+
+```
+
+```{r corrplot-qlt-pois-hint}
+corrplot(var$cos2, is.corr=FALSE)
+```
+
+Il est également possible de créer un barplot du `cos2` des variables sur un nombre  spécifique de facteurs avec la fonction `fviz_cos2(res.mca, choice = "var", axes = 1:2)`
+
+```{r viz-qlt-pois, exercise=TRUE, exercise.eval=FALSE, exercise.setup="Setup-ACM"}
+
+```
+
+```{r viz-qlt-pois-hint}
+fviz_cos2(res.mca, choice = "var", axes = 1:2)
+```
+
+Notez que les catégories `Fish_n`, `Fish_y`, `Icecream_n` et `Icecream_y` ne sont pas très bien représentées par les deux premières dimensions. Cela implique que la position des points correspondants sur le graphique doit être interprétée avec prudence.
+
+## __Contribution des variables aux dimensions__
+
+La contribution des variables (en %) à la définition des dimensions peut être affichée en tapant `var$contrib`
+
+
+```{r ctr-pois, exercise=TRUE, exercise.eval=FALSE, exercise.setup="Setup-ACM"}
+
+```
+
+```{r ctr-pois-hint}
+round(var$contrib,2) ## round pour limiter le nombre des décimales 
+```
+
+Les variables avec les plus grandes valeurs, contribuent le mieux à la définition des dimensions. Les catégories qui contribuent le plus à Dim.1 et Dim.2 sont les plus importantes pour expliquer la variabilité dans le jeu de données.
+
+Utilisez la fonction `fviz_contrib()` pour faire un barplot de la contribution des catégories des variables aux axes 1 et 2.       
+
+
+```{r viz-ctr-pois, exercise=TRUE, exercise.eval=FALSE, exercise.setup="Setup-ACM"}
+
+```
+
+```{r viz-ctr-pois-hint}
+# Contributions des variables à la dimension 1. l'argument "top = 15" pour montrer le top 15 des catégories contribuant aux dimensions    
+fviz_contrib (res.mca, choice = "var", axes = 1, top = 15)  
+# Contributions des variables à la dimension 2    
+fviz_contrib (res.mca, choice = "var", axes = 2, top = 15)  
+# Contribution totale aux dimensions 1 et 2   
+fviz_contrib(res.mca, choice = "var", axes = 1:2, top = 15) 
+```
+
+La ligne en pointillé rouge, sur le graphique ci-dessus, indique la valeur moyenne attendue.
+
+On peut voir que:
+
+les catégories `Abdo_n`, `Diarrhea_n`, `Fever_n` et `Mayo_n` sont les plus importantes dans la définition de la première dimension.       
+Les catégories `Courg_n`, `Potato_n`, `Vomit_y` et `Icecream_n` contribuent le plus à la dimension 2.       
+
+De la même manière que la visualisation des qualités de représentation, les catégories les plus importantes peuvent être mises en évidence sur le premier plan en utilisant la fonction `fviz_mca_var` avec l'argument `col.var = "contrib"` et `gradient.cols = c("white", "blue", "red")` pour colorer les variables en fonction de la valeur de leur contributions.
+
+```{r plot-ctr-pois, exercise=TRUE, exercise.eval=FALSE, exercise.setup="Setup-ACM"}
+
+```
+
+```{r plot-ctr-pois-hint}
+# Colorer en fonction du cos2   
+fviz_mca_var(res.mca, col.var = "contrib",
+             gradient.cols = c("white", "blue", "red"), 
+             repel = TRUE)
+```
+
+Le graphique ci-dessus donne une idée du pôle des dimensions auquel les catégories contribuent réellement.
+
+Il est évident que les catégories `Abdo_n`, `Diarrhea_n`, `Fever_n` et `Mayo_n` ont une contribution importante au pôle positif de la première dimension, tandis que les catégories `Fever_y` et `Diarrhea_y` ont une contribution majeure au pôle négatif de la première dimension; etc,  
+
+## __Description des facteurs__
+
+Pour décrire les facteurs (dimensions ou axes), il faut identifier les variables et les catégories les plus corrélées avec ces facteurs, c'est ce que permet la fonction `dimdesc` en spécifiant le rang de la dimension (ou le vecteur des dimensions) cibles, par exemple `desc.fact <- dimdesc(res.mca, axes = ...)`. 
+
+Pour afficher les résultats relatifs au facteur de rang `k`, taper `desc.fact[[k]]`.
+
+```{r dimdesc-pois, exercise=TRUE, exercise.eval=FALSE, exercise.setup="Setup-ACM"}
+
+```
+
+```{r dimdesc-pois-hint}
+desc.fact <- dimdesc (res.mca, axes = c(1,2))
+desc.fact[[1]]
+desc.fact[[2]]
+```
+
+## __Graphique des individus__
+
+La fonction `fviz_ellipses` peyt être utulisée pour analyser les individus.       
+Vous pouvez Colorer les individus à l’aide de plusieurs variables catégorielles (par exemple Vomiting et Fever) en même temps en  utilisant la fonction 
+$$fviz\_ellipses(res.mca,\ c("Vomiting",\ "Fever"),\ geom = "point")$$
+
+
+```{r ellipses-pois, exercise=TRUE, exercise.eval=FALSE, exercise.setup="Setup-ACM"}
+
+```
+
+```{r ellipses-pois-hint}
+fviz_ellipses(res.mca, c("Vomiting", "Fever"), geom = "point")    
+fviz_ellipses (res.mca, 1:4, geom = "point") ## les variables catégorielles peuvent aussi être spécifiées par indices 
+```
+
+Une ellipse de confiance autour du point moyen (centre de gravité) de chaque groupe est affichée
+
+## __Eléments supplémentaires__
+
+#### __Spécification dans l’ACM__
+
+Pour spécifier des individus et des variables supplémentaires, la fonction `MCA()` peut être utilisée comme suit:        
+
+$$MCA(\ X,\ ind.sup = …,\ quanti.sup = …,\  quali.sup = …,\ graph = TRUE)$$
+
+    ind.sup : a vector indicating the indexes of the supplementary individuals
+    quanti.sup : a vector indicating the indexes of the quantitative supplementary variables    
+    quali.sup : a vector indicating the indexes of the categorical supplementary variables
+
+Relancer l'ACM sur le jeu de donnée `poisson` en spécifiant les 4 premières variables comme étant des variables supplémentaires
+
+```{r mca-2-pois, exercise=TRUE, exercise.eval=FALSE}
+
+```
+
+```{r mca-2-pois-hint}
+res.mca2 <- MCA (poison,quanti.sup = 1:2, quali.sup = 3:4, graph = FALSE)
+res.mca2
+```
+
+```{r Setup-ACM-2}
+res.mca2 <- MCA (poison,quanti.sup = 1:2, quali.sup = 3:4, graph = FALSE)
+```
+
+Pour spécifier les éléments que vous voulez visualiser dans les représentation graphique
+
+    plot(res.mca2,invisible=c("var","quali.sup"),cex=0.7) #To plot the graph of individuals
+    plot(res.mca2,invisible=c("ind","quali.sup")) #To plot the graph of active categories
+    plot(res.mca2,invisible="quali.sup") #To plot the graph  of superimposed representations
+    plot(res.mca2,invisible="ind") #To plot the graph of active and supplementary categories
+    plot(res.mca2,invisible=c("ind","var")) #To plot the graph  of supplementary categories
+    fviz_mca_var(res.mca2, choice = "quanti.sup") #To plot the quantitative supplementary variable
+
+
+```{r Plot-ACM-2, exercise=TRUE, exercise.eval=FALSE, fig.width=8, fig.height=8, exercise.setup="Setup-ACM-2"}
+
+```

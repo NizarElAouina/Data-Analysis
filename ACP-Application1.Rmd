@@ -1,0 +1,371 @@
+---
+title: "ACP-Etude de cas"
+output: 
+  learnr::tutorial:
+    progressive: true
+    allow_skip: true
+runtime: shiny_prerendered
+description: >
+  ACP.
+---
+
+```{r setup, include=FALSE}
+library(learnr)
+library(tidyverse)
+library(nycflights13)
+library(Lahman)
+library(FactoMineR)
+library(factoextra)
+library(Hmisc)
+library(corrplot)
+tutorial_options(exercise.timelimit = 60)
+knitr::opts_chunk$set(error = TRUE)
+```
+
+
+## __Lecture des données__
+
+Ici nous allons utiliser deux packages du programme `R`, à savoir:    
+  `FactoMiner` pour l'analyse  
+  `factoextra` pour la visualisation  
+  `Hmisc` pour l'étude des corrélations  
+  `corrplot` pour visualiser les corrélation  
+
+
+```{r Load-packages, exercise=TRUE, exercise.eval=TRUE}
+
+```
+
+```{r Load-packages-hint}
+library(FactoMineR)  
+library(factoextra)  
+library(Hmisc)  
+library(corrplot)
+```
+
+Nous utiliserons le jeu de données de démonstration `decathlon2` du package `factoextra`.  
+Pour avoir un aperçu sur les données, utiliser les fonction suivantes:  
+    `str()` pour afficher un listing de toutes les variables et de leurs types  
+    `head()` pour afficher les 6 premières lignes  
+    `tail` pour afficher les 6 dernières lignes    
+
+```{r print-decath, exercise=TRUE, exercise.eval=FALSE}
+
+```
+
+```{r print-decath-hint}
+str(decathlon2)
+head(decathlon2)
+tail(decathlon2)
+```
+
+
+Calculer les statistiques descriptives des variables à l'aide de la fonction `summary()`
+```{r summary-decathlon2, exercise=TRUE, exercise.eval=TRUE}
+
+```
+
+```{r summary-decathlon2-hint}
+summary(decathlon2)
+```
+
+
+Pour __opérez une sélection__ dans un dataframe, vous pouvez sélectionner selon un indice ou un vecteur d'indice, sur les lignes, les colonnes ou les deux en même temps.  
+`decathlon2[c(1,2,5), ]` permet de sélectionner les lignes 1, 2 et 5  
+`decathlon2[, c(3,5,7)]` permet de sélectionner les colonnes 3, 5 et 7  
+`decathlon2[c(1,2,5), c(3,5,7)]` permet de sélectionner les lignes 1, 2 et 5 sur les colonnes 3, 5 et 7  
+
+Faire des expérimentations pour voir les résultats
+```{r selection, exercise=TRUE, exercise.eval=FALSE}
+
+```
+
+## __Etude des corrélations__
+
+Calculer la matrice de corrélation relative au jeu de données en utilisant la fonction `cor`
+
+```{r cor-decathlon2, exercise=TRUE, exercise.eval=TRUE}
+
+```
+
+```{r cor-decathlon2-hint-1}
+cor(decathlon2[..., ...])
+```
+
+```{r cor-decathlon2-hint-2}
+cor(decathlon2[, 1:12])
+```
+
+Dans la table ci-dessus les coefficients de corrélation sont montrés entre les différentes paires possibles de variables.
+
+### __Visualiation des correlations__
+
+Il y a plusieurs packages disponibles pour visualiser les matrices de corrélation dans __$R$__. L’un des plus communs est le package `corrplot`     
+
+
+Pour visualiser la matrice de corrélation, procéder comme suivant :  
+    1. Charger la package `corrplot` (Il faut bien évidemment l'installer s'il ne l'est pas).  
+    2. Claculer la matrice de corrélation et nommer la `corr.decathlon`  
+    3. appliquer la fonction `corrplot` sur l'objet `corr.decathlon`
+
+
+```{r corrplot-decathlon2, exercise=TRUE, exercise.eval=TRUE}
+
+```
+
+
+```{r corrplot-decathlon2-hint-1}
+library(corrplot)  
+corr.decathlon <- cor(decathlon2[, 1:12])
+```
+
+```{r corrplot-decathlon2-hint-2}
+library(corrplot)  
+corr.decathlon <- cor(decathlon2[, 1:12])
+corrplot(corr.decathlon)
+```
+
+Comme vous pouvez constater, les corrélations positives sont affichées sur une échelle bleue tandis que les corrélations négatives sont affichées sur une échelle rouge. La taille du cercle est proportionnelle à l'intensité de la corrélation.  
+
+La visualisation permet d'identifier rapidement les principaux liens entre les variables, puis une analyse plus profonde peut être entamée sur la base de les tests de corrélation.
+
+
+### __Test de significativité de la corrélation (p-value)__
+
+Le résultat de la fonction `cor()` est une table de coefficients de corrélation entre chaque variable et les autres. Mais, cette fonction n'affiche pas la significativité de la corrélation (p-value).  
+
+La fonction `rcorr()` du package `Hmisc` peut être utilisée pour calculer le niveau de significativité pour les corrélations de pearson et de spearman.
+
+
+```{r rcorr-decathlon2, exercise=TRUE, exercise.eval=TRUE}
+
+```
+
+```{r rcorr-decathlon2-hint-1}
+rcorr(decathlon2[, 1:12])
+```
+
+```{r rcorr-decathlon2-hint-2}
+corr.decathlon <- rcorr(as.matrix(decathlon2[, 1:12]))
+```
+
+```{r rcorr-decathlon2-hint-3}
+corrplot(corr.decathlon$P)
+```
+
+La fonction `rcorr()` renvoie une liste avec les éléments suivants :   
+-la matrice de corrélation   
+-la matrice du nombre d’observations utilisé dans l’analyse de chaque paire de variables  
+-les p-values correspondant aux niveaux de significativité des corrélations   
+Vous pouvez avoir plus de détail sur les éléments de l'objet renvoyé par la fonction `rcorr()` par la fonction `str()`  
+
+## __Calcul des composantes principales__
+
+La fonction `PCA()` du package `FactorMiner` permet de calculer les conposantes principale :  
+Taper `??PCA` dans la console pour avoir plus de détail sur la fonction.
+
+```{r PCA_decathlon2, exercise=TRUE, exercise.eval=TRUE}
+
+```
+
+```{r PCA_decathlon2-hint}
+decath.acp <- PCA(decathlon2[,-13], scale.unit = TRUE, graph = FALSE)
+decath.acp
+```
+
+### __Les valeurs propres/la variabilité retenue__
+
+Comme décrit dans les sections précédentes, les valeurs propres mesurent les quantités des variations retenues par chaque composante principale. Ainsi, on s'attend à ce que la valeur propre de la première composante principale soit la plus élevée, et que celles des composantes suivantes soient de plus en plus inférieures à leurs précédentes.  
+
+Autrement dit, les premieres composantes principales indiquent les directions relatives aux variations maximales des données.
+
+Nous examinons les valeurs propres pour déterminer le nombre de composantes principales à retenir. Les valeurs propres et les proportions des variations (ou bien de l’information) conservés par les composantes principales peuvent être extraites en utilisant la fonction `get_eigenvalue()`  
+
+```{r prepare-PCA_decathlon2}
+decath.acp <- PCA(decathlon2[,-13], scale.unit = TRUE, graph = FALSE)
+```
+
+
+```{r get_eigenvalue-decath_acp, exercise=TRUE, exercise.eval=TRUE, exercise.setup="prepare-PCA_decathlon2"}
+
+```
+
+```{r get_eigenvalue-decath_acp-hint}
+get_eigenvalue(decath.acp)
+```
+
+La somme des valeurs propres donne un total de 12.  
+La proportion de variation expliquée par chaque valeur propre est donnée dans la seconde colonne. Par exemple, pour la première composante `Dim.1`, la valeur propre `5.16` divisé par 12 est égal à `0,43`    Ainsi, environ `43,04\%` de la variation est expliquée par cette première valeur propre.  
+Le pourcentage cumulatif s’obtient en additionnant les proportions successives de variation expliquées.   
+Par conséquent, environ `57.59\%` de la variation est expliquée par les deux premières composantes principales.  
+
+Les valeurs propres peuvent être utilisées pour déterminer le nombre de composants principales à retenir :  
+-Une valeur propre `>1` indique que la composante principale corréspondante représentent retient plus de variance que la variable d’origine dans les données normalisées. C'est un seuil couramment utilisé pour lequel les composantes principales sont conservés.  
+-Vous pouvez également limiter le nombre de composants en fonction de la variabilité retenue. Par exemple, si vous êtes
+satisfait avec `70%` de la variance totale expliquée, conservez le nombre de composants necessaires pour y parvenir.  
+
+
+Une autre méthode pour déterminer le nombre de composants principaux est de se servivr du graphique ci-après qui retrace les valeurs propres de la plus grande à la plus petit.
+
+Le nombre de composantes à retenir est déterminé au point au-delà duquel les valeurs propres restantes sont toutes relativement petites et de taille comparable.
+
+```{r Plot_eigenvalue-decath_acp, exercise=TRUE, exercise.eval=TRUE, exercise.setup="prepare-PCA_decathlon2"}
+
+```
+
+```{r Plot_eigenvalue-decath_acp-hint}
+fviz_eig(decath.acp, addlabels = TRUE, ylim = c(0, 50))
+```
+
+
+## __représentations graphiques des variables__
+
+La fonction `get_pca_var()` permet d'extraire les résultats relatives aux variables d'origines depuis l'objet retourné par la fonction `PCA`     
+Appliquer la sur l'objet `decath.acp`    Nommer l'output `cmp_var`  
+Afficher les élément de l'objet `cmp_var` par la fonction `str()`
+
+
+```{r get_pca_var-decath, exercise=TRUE, exercise.eval=TRUE, exercise.setup="prepare-PCA_decathlon2"}
+
+```
+
+```{r get_pca_var-decath-hint-1}
+cmp_var <- get_pca_var(decath.acp)
+```
+
+```{r get_pca_var-decath-hint-2}
+cmp_var <- get_pca_var(decath.acp)
+str(cmp_var)
+```
+
+Les élément de l'objet `cmp_var` qui serviront à la représentation des variables sont : 
+
+*`cmp_var$coord`   : les coordonnées des variables.    
+*`cmp_var$cor`     : Corrélations des variables au composantes principales.    
+*`cmp_var$cos2`    : représente la qualité de représentation des variables par les composantes ($=coord^2$)  
+*`cmp_var$contrib` : représente la contribution en pourcentage de la variable dans la formation de la composante principale. ($=\frac{cos2_{var}}{\sum_{vars}{cos2}}100$).  
+
+afficher ces élément depuis la console ci-dessus.  
+
+## __Le cercle de corrélation__
+
+La corrélation entre une variable et une composante principale (__CP__) est utilisée comme coordonnée de la variable sur la __CP__ .
+**La représentation des variables diffère de le graphique des observations : Les observations sont représentées par leur les projections, mais les variables sont représentées par leurs corrélations**  
+
+*Taper `cmp_var$coord` pour afficher les coordonnées des variables sur les composantes   
+*Pour tracer le cercle de corrélation entre les variables et les composantes appliquer la fonction `fviz_pca_var` sur l'objet `decath.acp`     
+
+```{r CP_decathlon2}
+decath.acp <- PCA(decathlon2[,-13], scale.unit = TRUE, graph = FALSE)
+cmp_var    <- get_pca_var(decath.acp)
+```
+
+```{r Plot_pca_coord-decath, exercise=TRUE, exercise.eval=TRUE, exercise.setup="CP_decathlon2"}
+
+```
+
+```{r Plot_pca_coord-decath-hint-1}
+cmp_var$coord
+```
+
+```{r Plot_pca_coord-decath-hint-2}
+fviz_pca_var(decath.acp)
+```
+
+Le graphique ci-dessus  montre les relations entre toutes les variables. Il peut être interprété comme suit :  
+-Les variables `positivement` corrélées sont regroupées.  
+-Les variables `négativement` corrélées sont positionnées sur les côtés opposés du graphique (quadrants opposés).  
+-Les distances entre les variables et l’origine mesure la qualité de représentation des variables sur les composantes.   principales. Plus la variable est éloignée de l'origine, mieux est la représentation.  
+
+## __La qualité de représentation des variables sur les composantes__
+
+- La qualité de représentation des variables sur les composantes est enregistré dans la matrice `cmp_var$cos2`    Taper la dans la console ci-dessous pour afficher les valeurs.  
+
+- Pour toutes les variables, la somme des `cos2` sur les composantes principales est égale à `1`     
+
+
+- Un `cos2` élevé indique une bonne représentation de la variable sur la composant principal. Dans ce cas, la variable est positionnée proche de la circonférence du cercle de corrélation.  
+
+- Un `cos2` bas indique que la variable n’est pas bien représentée par la composant principal. Dans ce cas, la variable est proche du centre du cercle.  
+
+- Vous pouvez les visualiser en utilisant le fonction `corrplot` sur `cmp_var$cos2`     
+
+```{r Plot_pca_cos2-decath, exercise=TRUE, exercise.eval=TRUE, exercise.setup="CP_decathlon2"}
+
+```
+
+```{r Plot_pca_cos2-decath-hint-1}
+cmp_var$cos2
+```
+
+```{r Plot_pca_cos2-decath-hint-2}
+cmp_var$cos2
+corrplot(cmp_var$cos2, is.corr = FALSE)
+```
+
+Dans la pratique, il est possible dans le cercle des corrélations de colorer les variables par leurs valeurs `cos2` en utilisant l’argument `col.var=cos2`    
+
+```{r Plot_pca_cor_cos2-decath, exercise=TRUE, exercise.eval=TRUE, exercise.setup="CP_decathlon2"}
+fviz_pca_var(decath.acp, col.var = "cos2",
+gradient.cols = c("#00AFBB", "#E7B800", "#FC4E07"),
+repel = TRUE # Avoid text overlapping
+)
+```
+
+
+## __Description des dimensions__
+
+La fonction `dimdesc()` du package `FactoMineR` peut être utilisée pour la description des dimensions, elle permet d'identifier les variables les plus significativement associées à une composante principale donnée . Il peut être utilisé comme suit : $$dimdesc(cmp\_var, axes = c(...), proba = ...)$$
+Avec `axes` représente le nombre de composante à décrire et `proba` est le seuil de confiance adopté ($=0.05$ par défaut).  
+
+Appliquer `dimdesc()` pour décrire les deux premières composantes de `cmp_var`     
+accéder au descriptions des deux premières composantes en tapant `cmp.desc$Dim.1 ` et `cmp.desc$Dim.2` dans la console.  
+
+```{r desc_pca_cos2-decath, exercise=TRUE, exercise.eval=TRUE, exercise.setup="CP_decathlon2"}
+cmp.desc <- dimdesc(decath.acp, axes = c(1,2), proba = 0.05)
+```
+
+```{r desc_pca_cos2-decath-hint}
+cmp.desc <- dimdesc(decath.acp, axes = c(1,2), proba = 0.05)  
+cmp.desc$Dim.1  
+cmp.desc$Dim.2
+```
+
+## __représentations graphiques des individus__
+
+Les résultats relatifs aux individus peuvent être extraits depuis l'objet `decath.acp` en utilisant la fonction `get_pca_ind()` du package `factoextra`      
+
+Appliquer `get_pca_ind()` sur `decath.acp`, nommer le résultat `indiv.desc` et afficher ses éléments.  
+
+```{r indiv_desc-decath, exercise=TRUE, exercise.eval=TRUE, exercise.setup="CP_decathlon2"}
+
+```
+
+```{r indiv_desc-decath-hint}
+indiv.desc <- get_pca_ind(decath.acp)
+str(indiv.desc)
+```
+
+De la même façon que `get_pca_var()`, la fonction  `get_pca_ind()` retourne une liste de matrices contenant tous les résultats pour les individus (coordonnées, corrélation entre variables et axes, cosinus carré et contributions)
+
+### __Qualité de représentation et contribution__
+
+Le graphique des individus dans l'espace des composantes peut être tracer par la fonction `fviz_pca_ind`     
+Il'est aussi possible de colorier les individus en fonction de la qualité de représentation (`cos2`).  
+
+```{r Plot_indiv-Cos2-decath, exercise=TRUE, exercise.eval=TRUE, exercise.setup="CP_decathlon2"}
+Plot.indiv_quality<-fviz_pca_ind(decath.acp, col.ind = "cos2", gradient.cols =c("red", "yellow", "green"), repel = TRUE)  
+
+```
+
+`repel = TRUE` est pour éviter le chevauchement  
+Les individus similaires sont regroupés dans le graphique.  
+Vous pouvez améliorer le graphique en mettant les points des individus en fonction du `cos2`     
+
+Vous pouvez aussi utiliser la fonction `fviz_contrib` pour visualiser les contributions des individus dans la formation des composantes principale.  
+
+```{r Plot_indiv-contrib-decath, exercise=TRUE, exercise.eval=TRUE, exercise.setup="CP_decathlon2"}
+Plot.indiv_contrib<-fviz_contrib(res.pca, choice = "ind", axes = 1:2)
+Plot.indiv_contrib
+```
+

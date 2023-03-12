@@ -1,0 +1,394 @@
+---
+title: "Lab: Clustering"
+output: 
+  learnr::tutorial:
+    progressive: true
+    allow_skip: true
+runtime: shiny_prerendered
+description: >
+  ACP.
+---
+
+```{r setup, include=FALSE}
+library(learnr)
+library(tidyverse)
+library(stats)
+#library(FactoMineR)
+library(factoextra)
+#library(corrplot)
+tutorial_options(exercise.timelimit = 60)
+knitr::opts_chunk$set(error = TRUE)
+```
+
+## __Introduction__
+
+Le clustering est une technique d’apprentissage non supervisée qui permet de subdiviser la population en plusieurs clusters ou groupes de manière à ce que les points de données d’un cluster soient semblables les uns aux autres et que les points de données de différents clusters soient différents.
+
+## __Lecture des données__
+
+Télécharger les packages necessaires pour l'analyse       
+
+```{r Load-packages, exercise=TRUE, exercise.eval=TRUE}
+
+```
+
+```{r Load-packages-hint}
+library(stats)  
+library(factoextra)   
+```
+
+Le jeu de données __USArrests__ contient des statistiques sur les arrestations par 100 000 résidents pour agressions, meurtres et viols dans chacun des 50 États américains en 1973.
+Il comprend également le pourcentage de la population dans les zones urbaines.        
+
+Executer `?USArrests` pour plus de détails.       
+
+Pour avoir un aperçu sur les données, utiliser les fonction suivantes:  
+    `str()`pour afficher un listing de toutes les variables et de leurs types  
+    `head()` pour afficher les 6 premières lignes  
+    `tail` pour afficher les 6 dernières lignes  
+    `rownames()` pour afficher les noms des lignes  
+    `summary()` pour calculer les statistiques élémentaires
+    
+```{r print-Arrest, exercise=TRUE, exercise.eval=FALSE}
+
+```
+
+```{r print-Arrest-hint}
+data(USArrests)
+str(USArrests)
+head(USArrests)
+tail(USArrests)
+colnames(USArrests)
+```
+
+
+## __K-means__
+
+Les données ne doivent contenir que des variables continues, car l’algorithme k-means utilise des moyennes des variables. Comme nous ne voulons pas que l’algorithme k-means dépende des unités des variables, commencez par standardiser les variables en utilisant la fonction `R` `scale()`:
+
+La fonction R pour faire le clustering par la méthode k-means est `kmeans()` du package `stats`. Taper `?kmeans()` pour plus de détails sur ses paramètres.
+
+```{r help-kmeans, exercise=TRUE, exercise.eval=FALSE}
+
+```
+
+```{r help-kmeans-hint}
+?kmeans()
+```
+
+### __Estimation du nombre optimal de clusters__
+
+Le clustering  k-means nécessite de spécifier apriori le nombre de clusters à générer.        
+
+Une question fondamentale se pose; Comment choisir le bon nombre de clusters (k)?       
+
+Ici, nous proposons une solution simple. L’idée est de calculer k-means clustering en utilisant différentes valeurs de `k`. Ensuite, les WSS (Within Sum of Square) sont dessinés en fonction du nombre de clusters.         
+Le coude dans le graphique est généralement considéré comme un indicateur du nombre approprié de `k`.        
+Pour ce faire:        
+
+ - Standardier les données par la fonction `sclale(data)`       
+ - utiliser la fonction `fviz_nbclust(data, kmeans, method = ...)` du package `factoextra` sur le jeu de données `USArrests` et avec `methode="wss"`. (Taper `?fviz_nbclust()` pour plus de détails)       
+
+
+```{r kmeans-k, exercise=TRUE, exercise.eval=FALSE}
+
+```
+
+```{r kmeans-k-hint}
+library(factoextra)    
+data("USArrests") # Loading the data set    
+df <- scale(USArrests) # Scaling the data   
+
+fviz_nbclust(df, kmeans, method = "wss") +
+geom_vline(xintercept = 4, linetype = 2)
+```
+
+Le graphique ci-dessus représente la variance à l’intérieur des clusters. Elle diminue à mesure que `k` augmente, mais on peut voir un "coude" à k = 4. Ce "coude" indique que des clusters supplémentaires au-delà du quatrième ont peu de valeur.       
+
+### __Calcul du clustering k-means __
+
+Comme l’algorithme `k-means` commence par des centroïdes sélectionnés aléatoirement, il est toujours recommandé d’utiliser la fonction `set.seed()` pour définir une référence pour le générateur de nombres aléatoires de R. L’objectif est de rendre les résultats reproductibles, afin d'obtenir exactement les mêmes résultats en cas de réexecution des fonctions.        
+
+Le paramètre `nstart` de la fonction `kmeans` fixe le nombre de différentes affectations aléatoires de départ, avant de sélectionner le meilleur résultat correspondant à la plus faible variation intra-clusters.    
+
+La valeur par défaut de `nstart` dans `kmeans()` est 1. Mais, il est fortement recommandé de calculer k-means clustering avec une grande valeur de `nstart` (25 ou 50), afin d’avoir un résultat plus stable.       
+
+Définisser une valeur de référence pour le générateur des valeurs aléatoires (par ex : set.seed(123)) puis Caculer k-means avec `k = 4` et `nstart = 25`. Afficher le résultat.
+
+```{r kmeans-Arrest, exercise=TRUE, exercise.eval=FALSE}
+
+```
+
+```{r kmeans-Arrest-hint}
+set.seed(123) 
+df <- scale(USArrests)
+km.res <- kmeans(df, 4, nstart = 25)  
+print(km.res) 
+```
+
+Il est judicieux à ce niveau d'examiner les variables originales (USArrests au lieu de df) au sein des clusters.       
+utiliser $aggregate(USArrests, by=list(cluster=km.res\$cluster), function)$ en remplaçant `fonction` par `mean ou sd`         
+
+Utiliser la fonction `cbind` pour joindre la colonne des clusters `as.factor(km.res$cluster)` au jeu de données `USArrests`. Nommer ce jeu de données `USArrests_C`  
+
+Executer la fonction suivante $ggplot(USArrests\_C, aes(y=var,\ fill=cluster)) + geom\_boxplot()$ pour visualiser la distribution de la variables `var` dans chaque clusters. Et ce pour var = `r colnames(USArrests)`
+
+
+```{r Setup-km}
+set.seed(123) 
+df <- scale(USArrests)
+km.res <- kmeans(df, 4, nstart = 25) 
+```
+
+```{r stat-kmeans-Arrest, warning=FALSE, exercise=TRUE, exercise.eval=FALSE, exercise.setup="Setup-km"}
+
+```
+
+```{r stat-kmeans-Arrest-hint-1}
+aggregate(USArrests, by=list(cluster=km.res$cluster), mean) 
+aggregate(USArrests, by=list(cluster=km.res$cluster), sd) 
+USArrests_C=cbind(USArrests, cluster=as.factor(km.res$cluster)) 
+ggplot(USArrests_C, aes(y=Assault, fill=cluster)) + geom_boxplot()  
+```
+
+```{r stat-kmeans-Arrest-hint-2}
+
+for(i in c(1:4)){
+     var=colnames(USArrests_C)[i] 
+     print(ggplot(USArrests_C, aes(y=USArrests_C[[i]], fill=cluster)) + 
+     geom_boxplot()+ ylab(var)) 
+     } 
+```
+
+### __Accès aux résultats de la fonction `kmeans()`__   
+
+`kmeans()` retourne une liste de composants, qui comprend:        
+
+ • clusters: vecteur d’entiers indiquant le cluster auquel chaque point est attribué        
+ • centres: Une matrice de centres de clusters (moyennes dans les clusters)       
+ • totss : La somme totale des carrés (TSS), mesure la variance totale        
+ • withinss : Vecteur de la somme des carrés intra-clusters, une valeur par cluster       
+ • tot.withinss : Totale des carrés intra-clusters, c.-à-d. somme(withinss)       
+ • betweenss : la somme des carrés inter-clusters, c.-à-d. totss - tot.withinss       
+ • Taille : Nombre d’observations dans chaque cluster
+ 
+Explorer ces éléments à travers l'opérateur `$`
+
+
+```{r Elts-kmeans-Arrest, warning=FALSE, exercise=TRUE, exercise.eval=FALSE, exercise.setup="Setup-km"}
+
+```
+
+### __Visualisation des clusters produits par `kmeans()`__   
+
+La visualisation des clusters peut être utilisée pour évaluer le choix du nombre de clusters ainsi que pour comparer deux méthodes différentes de clustering.
+
+L'idée est de visualiser les données en nuage de points avec la coloration de chaque point de données en fonction de son affectation aux clusters.
+
+Le problème se pose à ce niveau sur le choix des variables du plan de représentation puisque les données contiennent plus de 2 variables.
+
+Une solution consiste à réduire le nombre de dimensions en appliquant un algorithme de réduction des dimensions, tel que l'ACP, sur les quatre variables et retenir deux nouvelles variables (qui représentent les variables originales) pour faire la représentation graphique.
+
+Pour ce faire, la fonction `fviz_cluster()` du package `factoextra`prend les résultats de k-means et les données originales comme arguments. Puis, elle représente les observations en utilisant les composantes principales si le nombre de variables est supérieur à 2. La fonction permet également de tracer des ellipses de concentration autour de chaque cluster.
+
+Lisez plus de détails en tappant `?fviz_cluster()` puis faites la représentation graphique.
+
+```{r viz-kmeans-Arrest, warning=FALSE, exercise=TRUE, exercise.eval=FALSE, exercise.setup="Setup-km"}
+
+```
+
+```{r viz-kmeans-Arrest-hint}
+fviz_cluster(km.res, data = df,
+palette = c("#2E9FDF", "#00AFBB", "#E7B800", "#FC4E07"),
+ellipse.type = "euclid", # Concentration ellipse
+star.plot = TRUE, # Add segments from centroids to items
+repel = TRUE, # Avoid label overplotting (slow)
+ggtheme = theme_minimal()
+)  
+```
+
+## __Clustering hiérarchique__
+
+La fonction `dist()` permet de calculer la distance entre chaque paire d’observation dans un jeu de données. Les résultats de ce calcul sont appelés matrice de distance ou de dissimilarité.        
+Par défaut, la fonction `dist()` calcule la distance euclidienne entre les observations; cependant, il est possible d’indiquer d’autres métriques en utilisant la méthode argument. Voir `? dist` pour plus d’informations.        
+Revenons au jeu de données `USArrests`. Calculer la matrice de distance. 
+<!-- Covertir le résultat en matrice par la fonction `as.matrix()` -->
+
+```{r dist-CH-Arrest, warning=FALSE, exercise=TRUE, exercise.eval=FALSE, exercise.setup="Setup-km"}
+
+```
+
+```{r dist-CH-Arrest-hint}
+# Compute the dissimilarity matrix    
+# df = the standardized data    
+res.dist <- dist(df, method = "euclidean")   
+```
+
+La fonction `hclust()` permet de créer l’arbre hiérarchique à partir de la matrice de distance “res.dist” et une méthode de couplage (linkage). $$ hclust(d = ..., method = ...)$$
+
+ • d: Une structure de dissimilarité telle que produite par la fonction dist().       
+ • Méthode: La méthode d’agglomération (couplage) à utiliser pour calculer la distance entre les clusters. Les valeurs autorisées sont celles de «ward». «D», «ward.D2», «single», «complete», «average», «mcquitty», «median» ou «centroid».       
+ 
+Les méthodes de couplage «complete» et «ward.D2» sont généralement les plus préférées.       
+
+```{r Setup-km2}
+set.seed(123) 
+df <- scale(USArrests)
+km.res <- kmeans(df, 4, nstart = 25) 
+res.dist <- dist(df, method = "euclidean") 
+```
+
+```{r hclust-CH-Arrest, warning=FALSE, exercise=TRUE, exercise.eval=FALSE, exercise.setup="Setup-km2"}
+
+```
+
+```{r hclust-CH-Arrest-hint}
+res.hc <- hclust(d = res.dist, method = "ward.D2")  
+```
+
+### __Dendrogramme__
+
+```{r Setup-km3}
+set.seed(123) 
+df <- scale(USArrests)
+km.res <- kmeans(df, 4, nstart = 25) 
+res.dist <- dist(df, method = "euclidean") 
+res.hc <- hclust(d = res.dist, method = "ward.D2") 
+grp <- cutree(res.hc, k = 4)
+```
+
+Utiliser la fonction `fviz_dend()` du package `factoextra` pour produire un dendrogramme à partir de `res.hc`.
+
+```{r viz_dend-CH-Arrest, warning=FALSE, exercise=TRUE, exercise.eval=FALSE, exercise.setup="Setup-km3"}
+
+```
+
+```{r viz_dend-CH-Arrest-hint}
+fviz_dend(res.hc, cex = 0.5)  
+```
+
+Dans le dendrogramme ci-dessus, chaque noeud final correspond à un objet. En remontant l’arbre, les objets qui se ressemblent se combinent en branches, qui sont elles-mêmes fusionnées à une hauteur plus élevée.        
+La hauteur de la fusion, indiquée sur l’axe vertical, indique la (dis)similitude/distance entre deux objets/clusters. Plus la hauteur de la fusion est élevée, moins les objets sont semblables. Cette hauteur est nommée $cophenetic\ distance$ entre les deux objets.
+
+Afin d’identifier les clusters, nous pouvons couper le dendrogramme à une certaine hauteur que nous jugeons appropriée.
+
+### __Vérification de l’arborescence du clustering__
+
+Une façon de mesurer dans quelle mesure l’arbre de cluster généré par la fonction `hclust()` reflète les données est de calculer la corrélation entre les distances cophénétiques ($cophenetic\ distance$) et les données de distance originales générées par la fonction `dist()`. Si le clustering est valide, la liaison des objets (observations) dans l’arbre du cluster devrait avoir une forte corrélation avec les distances entre les objets dans la matrice de distance d’origine.
+
+La fonction `cophenetic()` peut être utilisée pour calculer les distances cophenetic pour la classification hiérarchique.
+
+```{r corr1_dend-CH-Arrest, warning=FALSE, exercise=TRUE, exercise.eval=FALSE, exercise.setup="Setup-km3"}
+# Compute cophentic distance    
+res.coph <- cophenetic(res.hc)  
+# Correlation between cophenetic distance and the original distance   
+cor(res.dist, res.coph)
+```
+
+Exécuter à nouveau la fonction `hclust()` en utilisant la méthode de liaison/linkage "average ". Ensuite, appeler cophenetic() pour évaluer le clustering obtenu.
+
+```{r corr2_dend-CH-Arrest, warning=FALSE, exercise=TRUE, exercise.eval=FALSE, exercise.setup="Setup-km3"}
+
+```
+
+```{r corr2_dend-CH-Arrest-hint}
+res.hc2 <- hclust(res.dist, method = "average") 
+
+cor(res.dist, cophenetic(res.hc2)) 
+```
+
+Le coefficient de corrélation montre que l’utilisation d’une méthode de liaison/linkage différente crée un arbre qui représente légèrement mieux les distances initiales.
+
+### __découpage du dendrogramme en clusters__
+
+La fonction `cutree()` permet de découper l'arbre généré par la fonction `hclust()` en plusieurs clusters soit en spécifiant le nombre désiré de clusters ou en spécifiant la hauteur de découpage. La fonction retourne un vecteur contenant le numéro de cluster pour chaque observation.
+
+
+```{r cat_dend-CH-Arrest, warning=FALSE, exercise=TRUE, exercise.eval=FALSE, exercise.setup="Setup-km3"}
+# Cut tree into 4 groups    
+grp <- cutree(res.hc, k = 4)  
+head(grp, n = 10) 
+# Number of members in each cluster   
+table(grp)  
+# Get the names for the members of cluster 1    
+rownames(df)[grp == 1]
+```
+
+
+Taper`?fviz_dend()`, puis visualiser le résultat du découpage avec la fonction `fviz_dend()` en spécifiant le nombre de clusters à retenir dans l'argument `k =4`.  
+
+
+```{r viz_cut_dend-CH-Arrest, warning=FALSE, exercise=TRUE, exercise.eval=FALSE, exercise.setup="Setup-km3"}
+
+```
+
+```{r viz_cut_dend-CH-Arrest-hint}
+# Cut in 4 groups and color by groups   
+fviz_dend(res.hc, k = 4, # Cut in four groups
+          cex = 0.5, # label size
+          k_colors = c("#2E9FDF", "#00AFBB", "#E7B800", "#FC4E07"),
+          color_labels_by_k = TRUE, # color labels by groups
+          rect = TRUE # Add rectangle around groups
+          )
+```
+
+En utilisant la fonction `fviz_cluster()`, visualiser le résultat dans un diagramme de dispersion. Les observations doivent être représentées par un nuage de points dans un plan synthétique défini par des composantes principales. 
+
+
+```{r viz_clt_dend-CH-Arrest, warning=FALSE, exercise=TRUE, exercise.eval=FALSE, exercise.setup="Setup-km3"}
+
+```
+
+```{r viz_clt_dend-CH-Arrest-hint}
+fviz_cluster(list(data = df, cluster = grp),
+             palette = c("#2E9FDF", "#00AFBB", "#E7B800", "#FC4E07"),
+             ellipse.type = "convex", # Concentration ellipse
+             repel = TRUE, # Avoid label overplotting (slow)
+             show.clust.cent = FALSE, ggtheme = theme_minimal())
+```
+
+## __Hierarchical K-Means Clustering__
+
+K-means représente l’un des algorithmes de clustering les plus populaires. Cependant, il a quelques limites: il exige que l’utilisateur spécifie le nombre de clusters à l’avance, et sélectionne les centroïdes initiaux aléatoirement. Le résultat du clustering final k-means est très sensible à cette sélection aléatoire initiale des centres des clusters, et peut être (légèrement) différent chaque fois que vous calculez k-means.
+
+k-means clustering hiérarchique (`hkmeans`) est une méthode hybride pour améliorer les résultats de k-means.
+
+L’algorithme `hkmeans` procède comme suit:
+
+ 1. Calculer le clustering hiérarchique et découper l’arbre en k-clusters        
+ 2. Calculer le centre (c.-à-d. la moyenne) de chaque cluster        
+ 3. Calculer k-means en utilisant les centres de clusters (définis à l’étape 2) comme point de départ  
+ 
+```{r hkm-Arrest, warning=FALSE, exercise=TRUE, exercise.eval=FALSE, exercise.setup="Setup-km3"}
+# Compute hierarchical k-means clustering
+res.hk <-hkmeans(df, 4) 
+# Elements returned by hkmeans()
+names(res.hk) 
+# Print the results
+res.hk
+```
+
+### __Visualisation des résultats de `hkmeans`__
+
+```{r Setup-km4}
+set.seed(123) 
+df <- scale(USArrests)
+km.res <- kmeans(df, 4, nstart = 25) 
+res.dist <- dist(df, method = "euclidean") 
+res.hk <-hkmeans(df, 4) 
+```
+
+
+```{r viz_hkm-Arrest, warning=FALSE, exercise=TRUE, exercise.eval=FALSE, exercise.setup="Setup-km4"}
+# Visualize the tree
+fviz_dend(res.hk, cex = 0.6, palette = "jco",rect = TRUE, 
+          rect_border = "jco", rect_fill = TRUE)
+
+# Visualize the hkmeans final clusters
+fviz_cluster(res.hk, palette = "jco", repel = TRUE,
+             ggtheme = theme_classic())
+```
+
+## __Travail à faire__
+
+Appliquer l'ensemble des méthodes de clustering abordées dans ce lab sur le jeu de données `decathlon2`.

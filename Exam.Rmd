@@ -1,0 +1,168 @@
+---
+title: "Examen 2022"
+author: "Nizar EL AOUINA"
+date: "2022-12-18"
+output: html_document
+---
+Hello world 
+
+```{r}
+tea = read.table("http://factominer.free.fr/book/tea.csv",header=T,sep=";")
+tea.active = tea[ , c("variety", "how", "format", "sugar", "place.of.purchase", "type",
+"frequency", "home", "work", "tearoom", "friends", "restaurant", "pub", "breakfast",
+"afternoon.tea", "evening", "after.lunch", "after.dinner", "anytime")]
+tea.active<- as.data.frame(lapply(tea.active, as.factor))
+#tea.active
+```
+Les fréquences des catégories actives : 
+```{r}
+summary(tea.active)
+```
+
+Visualisation des fréquences : 
+```{r}
+#for (i in 1:19) {
+ # plot(tea.active[,i], main = colnames(tea.active)[i],
+  #     ylab = "Count", las = 2)## las=0: labels are parallel to axis or las=2 labels are perpendicular to axis
+  #}
+par(cex=0.1,mfrow=c(3,6))
+for (i in 1:19) {
+plot(tea.active[,i], main = colnames(tea.active)[i], las = 2, cex.names = 0.5,
+cex.axis = 0.5, cex.main=1)
+}
+```
+Les catégories à très faibles fréquences sont celles qui contribuent le plus à l'inertie et à la définition des facteurs et augementent la distance entre individus. Dans ce graphique, seules les variables sugar, breakfast et afternoon.tea ont des catégories à fréquences à peu près égales, toutes les autres variables ont des catégories à très faible fréquence comme la variable home ou encore how, elles sont donc toutes candidates à avoir une influence sur l'analyse.
+
+
+```{r}
+library(FactoMineR)
+library(factoextra)
+res.mca<-MCA(tea.active, graph = FALSE)
+res.mca
+```
+Valeurs propres
+```{r}
+head(res.mca$eig)
+```
+Visualisation des valeurs propres : 
+```{r}
+fviz_eig(res.mca, addlabels = TRUE) 
+```
+
+Les deux premeirs facteurs représentent respectivement 9.4% et 7.3% de l'inertie globale, soit 16.72%
+
+Représentation des variables sur le plan défini par les facteurs: 
+
+```{r} 
+fviz_mca_var (res.mca, choice = "mca.cor", repel = TRUE)
+```
+
+Ce graphique montre les variables les plus corrélées aux facteurs.
+On remarque que pour la dim1, les variables les plus corrélées sont : place.of.purchase, tearoom et format.
+On remarque que pour la dim2, les variables les plus corrélées sont : place.of.purchase, type et format.
+La proximité entre les points indique une ressemblance entre les variables, ce qui n'est pas forcément le cas.
+
+Visualisation des contributions : 
+```{r} 
+fviz_contrib (res.mca, choice = "var", axes = 1) 
+fviz_contrib (res.mca, choice = "var", axes = 1, top = 15) 
+```
+ 
+
+On remarque que les catégories : supermarkert+speacialist et tearoom sont les catégories qui contribuent le plus à la définition de la Dim1.
+
+```{r} 
+fviz_contrib (res.mca, choice = "var", axes = 2) 
+fviz_contrib (res.mca, choice = "var", axes = 2, top = 15) 
+```
+
+On remarque que les catégories :specialist.shop, luxury et loose sont les catégories qui contribuent le plus à la définition de la Dim2.
+
+```{r} 
+fviz_contrib (res.mca, choice = "var", axes = 1:2) 
+fviz_contrib (res.mca, choice = "var", axes = 1:2, top = 15) 
+```
+
+On remarque que les catégories des variables place.of.purchase, type et format sont celles qui contribuent le plus à la définition des facteurs.
+
+
+5/ Analyse des associations entre catégories : 
+
+```{r} 
+fviz_mca_var(res.mca, col.var = "cos2",
+             gradient.cols = c("white", "blue", "red"), 
+             repel = TRUE)
+```
+
+Ce graphique permet d'extraire les catégories qui se ressemblent grâce à la proximité géographique et à la qualité de leur représentation sur le plan des deux facteurs.<br>
+Ainsi, on peut extraire 3 groupes de catégories.<br>
+1- Tearoom, supermarket+specialist et sachet+loose. Ce qui est logique car les individus qui se procurent le thé chez un spécialiste et au supermarché l'achètent sous format de sachet et en vrac.<br>
+2-Supermarket, sachet et known brands, ce qui est logique car les supermarchés vendent les marques de thé connues et industrielles, qui sont sour format de sachet.<br>
+3- Specialist.shop, loose et luxury, ce qui est logique car les vendeurs spécialisés proposent du thé de luxe en vrac et non en sachet, car il ,'est pas industriel.<br>
+
+```{r} 
+fviz_ellipses (res.mca, 1:19, geom = "point")
+```
+
+<br>
+Dans ces graphiques, on peut voir que la majorité des variables ont des catégories qui se ressemblent, ceci est du à leur ellipses qui sont plus ou moins confondues et qui couvrent l'origine du plan, ce qui se traduit, respectivement, par une ressemblance entre les catégories des variables et une mal représentation des catégories par le plan des deux facteurs.<br>
+Ainsi, on voit que les variables how et sugar sont celles dont les ellipses sont les plus confondues; leurs catégories se ressemblent sur un haut degré.<br>
+En revanche, on remarque que les variables: format, type, place.of.purchase ont des catégories qui sont confondues et couvrant l'origine sauf, pour les catégories luxury(type), specialist.shop(place.of.purchase) et loose(format). Ces catégories s'éloignent de l'origine du plan et ont des ellipses presque indépendantes des autres ellipses. 
+
+$***********************************$ <br>
+6/ AFC
+$***********************************$ <br>
+```{r} 
+library(corrplot)
+Form_PPurch <- as.data.frame.matrix(table(tea.active$format, tea.active$place.of.purchase))
+afc1 <- CA(Form_PPurch, graph = FALSE)
+afc1
+afc1$eig
+#plot(afc1)
+fviz_ca_biplot(afc1, repel = TRUE)
+```
+
+Le test de Khi-deux montre une forte corrélation entre les variables.<br>
+On remarque que la variance cumulée est 100% sur les deux dimensions, les variables format et place.of.purchase sont donc bien représentée par les deux facteurs.
+<br>
+Le deuxième graphique montre les associations des catégories entre les deux variables, ainsi, on note que loose est assimilé à specialist.shop, et supermarket+specialist est associé à loose+sachet et sachet est associé à supermarket.
+
+
+```{r}
+#corrplot(afc1$cos2, is.corr=FALSE)
+Form_PPurch2 <- as.data.frame.matrix(table(tea.active$type, tea.active$place.of.purchase))
+afc2 <- CA(Form_PPurch2, graph = FALSE)
+afc2
+afc2$eig
+fviz_ca_biplot(afc2, repel = TRUE)
+```
+
+Le test de Khi-deux montre une forte corrélation entre les variables. <br>
+La Dim.1 a une variance de 83.18% et Dim.2 de 16.81%, soit 100% de la variance cumulée, les variables type et place.of.purchase sont donc bien représentée sue le plan des facteurs.
+<br>
+Le deuxième graphique fait ressortir les associations entre les catégories des varibles, ainsi on remarque que luxury est associé à specialist.shop, que varies est associé à supermarket+specialist et supermarket est associée à unknown, shop.brand, known.brand et cheapest.
+
+```{r}
+desc.fact <- dimdesc (res.mca, axes = c(1,2))
+desc.fact[[1]]$category
+desc.fact[[2]]$category
+```
+
+Le premier facteur caractérise les choix mixtes comme supermarket+specialist ou loose+sachet.
+Le deuxieme caractérise les choix extrêmes, luxury, loose et specialist
+
+10/
+```{r}
+fviz_mca_ind(res.mca)
+fviz_mca_biplot(res.mca)
+fviz_mca_biplot (res.mca, repel = TRUE, select.ind=list(cos2 = 0.4), select.var = list(contrib = 10))
+```
+
+
+
+
+
+
+
+
+

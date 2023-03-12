@@ -1,0 +1,192 @@
+---
+title: "ACM"
+author: "Nizar EL AOUINA"
+date: "2022-11-09"
+output: html_document
+---
+
+
+
+## R Markdown
+
+1/ Lecture de données :
+
+```{r}
+tea = read.table("http://factominer.free.fr/book/tea.csv",header=T,sep=";")
+tea.active = tea[ , c("variety", "how", "format", "sugar", "place.of.purchase", "type",
+"frequency", "home", "work", "tearoom", "friends", "restaurant", "pub", "breakfast",
+"afternoon.tea", "evening", "after.lunch", "after.dinner", "anytime")]
+tea.active<- as.data.frame(lapply(tea.active, as.factor))
+head(tea.active)
+```
+
+2/ Calcul des fréquences :
+
+```{r}
+summary(tea.active)
+```
+D'après les fréquences calculées, on remarque que les catégories des variables "sugar", "breakfast", "friends" et "afternonn.tea" ont des fréquences à peu près égales(catégories de la même variable) , e.g, La variable "sugar" a 2 fréquences respectivement égales à 155 et 145.
+On remarque également que toutes les variables ayant des fréquences de catégories presque égales ont 2 catégories uniquement. Les autres variables n'ayant pas de fréquences égales entre les catégories, peuvent avoir 2 catégories comme elles pleuvent en avoir plus. e.g, La variable "type" a 6 catégories pour des fréquences variées.
+Ainsi, les variables ayant des inégalités remarquables  sont celles qui, potentiellement, contibuent le plus à l'écart entre les individus, et donc leur inertie. 
+
+3/ Réaliser l'ACM sur les données actives:
+```{r}
+library(FactoMineR)
+res.mca<-MCA(tea.active, graph = TRUE)
+```
+
+ *** Interprétation du premier Graphique : ***
+ 
+ Ce graphique permet de visualiser les distances entre les catégories, il permet de constater les premières tendances suivant les catégories; On remarque premièrement une condensation des catégories au niveau inférieur du graphique (proche de l'axe des abcisses).
+ On remarque également que 2 catégories se distinguent légèrement des autres catégories; i.e, "after.dinner" et "green". On pourraient peut-être découvrir que ces deux variables permettent d'extraire une classe d'individus.
+ Et on remarque que les catégories "Specialist.shop", "luxury" et "loose" se distinguent significativement du reste des catégories. Ces variables permettent d'une manière très lucide d'extraire une classe de catégories. Un thé de luxe se trouve effectivement chez des vendeurs spécialistes.
+ 
+  *** Interprétation du deuxième Graphique : ***
+  
+  Ce graphique permet de visualiser les distances entre les individus. Et à l'instar du premier graphique, il ya une surpopulation des individus, qui est d'ailleurs plus frappante, au niveau inférieur du graphique. Cette surpopulation se rétréssit progressivement et au fur et à mesure que l'on monte. On peut potentitellement extraire une classe d'individus qui sont distants des autres. Peut-être s'agit-il d'une classe sociale élevée ou des amateurs de thé prêt à débourser de l'argent pour boire un thé de qualité, car on retrouve effectivement des prix plus élevé que la moyenne chez les spécialistes du thé
+  
+  *** Interprétation du troisième Graphique : ***
+
+Ce graphique permet de visualiser les variables qui contribuent le plus à l'écart des distances et à l'inertie en se basant sur le rapport de corrélation entre la variables et les catégories. 
+On visualise clairement que les variables : "type", "place.of.purchase" et "format" sont celles qui contribuent le plus à l'écart des distances globalement.
+Ainsi, les variables "place.of.purchase" et "tearoom" sont les plus corrélées à la Dim.1.
+et les variables "place.of.purchase" et "type" sont les plus corrélées à la Dim.2.
+
+4- Analyse des deux premiers facteurs (Inertie, corrélations, contributions des
+variables et des catégories)
+Les valeurs Propres : **********
+
+```{r}
+library(factoextra)
+res.mca<-MCA(tea.active, graph = FALSE)
+eig.val <- get_eigenvalue(res.mca)
+eig.val
+head(eig.val)
+
+```
+On remarque que toutes les valeurs propres ont des valeurs très petites. Or les Dim.1 et Dim.2 ont des valeurs légèrement plus élevées, respectivement 9.37 et 7.33, soit 16.72 de l'inertie globale.
+
+Visulisation des valeurs propres : **********
+```{r}
+
+eig.val <- res.mca$eig
+barplot(eig.val[, 2], 
+        names.arg = 1:nrow(eig.val), 
+        main = "Variances Explained by Dimensions (%)",
+        xlab = "Principal Dimensions",
+        ylab = "Percentage of variances",
+        col ="steelblue")
+# Add connected line segments to the plot
+lines(x = 1:nrow(eig.val), eig.val[, 2], 
+      type = "b", pch = 19, col = "red", addlabels = TRUE)
+fviz_eig(res.mca, addlabels = TRUE)
+```
+
+Ces deux graphiques confirment l'analyse les constats réalisés sur les valeurs propres des dimensions.
+
+Représentation des variables : **********
+```{r}
+fviz_mca_var (res.mca, choice = "mca.cor", repel = TRUE)
+```
+
+Ce graphique est le même que celui tracé avec la commande
+'res.mca<-MCA(tea.active, graph = TRUE)'
+On remarque que les variables "type", "place.of.purchase" et "format" sont celles qui contribuent le plus à l'écart des distances. Or, en changeant l'échelle, on visualise plus fortement la corrélation de la variable "type" avec la Dim.1, ce qui montre que le bon choix de l'échelle peut s'avérer très efficace dans une analyse de données.
+
+Contribution des catégories aux dimensions : **********
+```{r}
+var <- get_mca_var(res.mca)
+round(var$contrib,2)
+summary(round(var$contrib,2))
+```
+
+Visualisons les contributions : *******
+```{r}
+fviz_contrib (res.mca, choice = "var", axes = 1)
+fviz_contrib (res.mca, choice = "var", axes = 1, top = 15) ##Visualisation des 15 premières contributions
+```
+
+Visualisons les 15 premières contibutions : **********
+```{r}
+fviz_contrib (res.mca, choice = "var", axes = 2 )
+fviz_contrib (res.mca, choice = "var", axes = 2, top = 15) ##Visualisation des 15 premières contributions
+fviz_contrib (res.mca, choice = "var", axes = 1:2, top = 15) 
+```
+
+On remarque que "supermarket+specialist" et "tearoom" sont les variables les plus corrélées à la Dim.1. D'autres catégories participent également d'une manière moins importante mais non négligeable comme "sachet+loose", "restaurant" etc.
+On remarque aussi que "specialist.shop", "luxury" et "loose" sont les variables les plus corrélées à la Dim.2. D'autres catégories participent également mais d'une manière moins significative.
+
+5/ Analyser les associations et les ressemblances entre les catégories dans le plan : ************
+Analyse des associations
+```{r}
+fviz_mca_var(res.mca, col.var = "contrib", gradient.cols = c("white", "blue", "red"),repel = TRUE)
+
+```
+
+La graduation de la couleur permet d'abord de sitinguer un premier groupe :
+1- specialist.shop, loose et luxury.
+On peut extraire également deux autres groupes qui ont des couleurs proches mais qui se situe d'une manière opposée du plan :
+2- supermarket+specialist, tearoom, restaurant et sachet+loose.
+3- supermarket, known.brand et sachet
+
+Analyse des ressemblances des catégories 
+```{r}
+fviz_ellipses(res.mca, colnames(tea.active), geom = "point")
+```
+En analysant ces ellipses, On remarque que la variable "format" est celle dontles ellipses sont les plus différenciées.
+La variable "type" a des ellipses confondues sauf pour l'ellipse de la catégorie luxury, qui clairement, se détache des autres.<br>
+On remarque aussi que la variable "tearoom" et "restaurant" ont des ellipses qui se détachent entre elles.
+Pour les autres variables, elles ont des ellipses plus confondues que celles qu'on vient de citer, et c'est d'autant plus visible quand il s'agit des variables "how", "anytime", "sugar","anytime" et "breakfast", ce qui témoigne d'une ressemblance entre les catégories.
+
+6/ AFC : ************
+```{r}
+Form_PPurch <- as.data.frame.matrix(table(tea.active$format, tea.active$place.of.purchase))
+afc1 <- CA(Form_PPurch, graph = FALSE)
+afc1
+afc1$eig
+```
+On remarque que la variance cumulée des Dim.1 et Dim.2 égale à 100%. Il n'y a pas de perte de l'information.
+
+```{r}
+plot(afc1)
+```
+
+Le graphique ci-dessus montre clairement qu'il y a une forte corrélation entre les deux variables, ainsi qu'entre les catégories de ces deux variables.
+On peut déduire que les personnes qui achètent du thé "loose" se le procurent chez des spécialistes.
+Les gens qui achètent uniquement des sachets de thé, se les procurent dans les supermarchés.
+Et les gens qui achètent du thé "loose" et en sachets, se le procurent au superm&rché et chez un spécialiste.
+
+```{r}
+Place_PPurch <- as.data.frame.matrix(table(tea.active$type, tea.active$place.of.purchase))
+afc2 <- CA(Place_PPurch, graph = FALSE)
+afc2
+afc2$eig
+plot(afc2)
+```
+
+On remarque que la Dim.1 a elle seule une variance de 83%, et la variance cumulée des deux dimensions est de 100%. Il n'y a aps perte de l'information. <br>
+On s'aperçoit également qu'il y a une forte corrélation entre les deux variables. Ainsi, on constate qu'il y a association entre les différentes catégories, on cite :
+"specialist.shop" avec "luxury"; un thé de type luxueux se trouve principalement chez des vendeurs spécialisés. <br>
+"Supermarket" avec "unkown", "known.brand", "shop.brand" et "cheapest" : Les supermarchés vendent en général des marques accessibles par le maximum de consommateurs.
+
+8/ Identifier les tendances principales : <brW
+ D'après cette analyse, on distingue l'émergence de 3 groupes d'individus: <br>
+ 1- Le premier groupe est celui des buveurs de thé de qualité, dontle format est "loose" ou "luxe" et qui se vend dans des magasins spécialisés. Ce groupe d'individus est celui qui réunit le moins d'inidividus, et c'est la raison pour laquelle, les modalités partagées par ce groupe sont celle qui sont le plus éloignées du centre de gravité, et ont d'ailleurs une inertie plus grande que les autres variables. Et moins ils sont nombreux, plus leurs modalités s'éloignent.<br>
+ 2- Le groupe d'inidividus aui achètent dans les supermarchés les marques de thé connues, peu connues ou les moins chères.<br>
+ 3- Le groupe d'individus qui achètent le thé indifférement du lieu d'achat (supermarché, spécialiste etc.). <br>
+ 
+ 9/ Stratégie Marketing : *******
+ 
+ Stratégie Marketing pour les fabricants de thé de moyenne ou bas de gamme : Financer des campagnes publicitaires visant le grand public pour se faire connaitre (known.brands), proposer des prix, des promotions ou des packages compétitifs (cheapest), et concentrer l'exposition des produits dans les grandes surfaces.
+ Stratégie Marketing pour les fabricants de thé de moyenne ou bas de gamme : Concentrer l'expostion des produits chez des spécialistes, organiser des évenements privés pour les amateurs de thé. Pour aller plus loin, Analyser les tendances de consommation des amateurs de thé de luxe, par exemple un design simple et raffiné attirerait peut-être plus de consommateurs, ou encore, voir si ces personnes ont un intérêt dans la protection de l'environement et proposer du thé en vrac ou un packaging éco-responsable pour avoir une impression de conscience éclologique et gagner leurs estime par rapport auc concurrents. 
+
+10/ Visualiser les individus marqués par les tendances identifiées : *********
+```{r}
+fviz_mca_biplot (res.mca, repel = TRUE, select.ind=list(cos2 = 0.4), select.var = list(contrib = 10))
+
+```
+
+
+
+
+
